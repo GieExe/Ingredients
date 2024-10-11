@@ -22,6 +22,8 @@ namespace Ingredients.FORMS
             txtHiddenID.Visible = false;
             btnUpdate.Visible = false;
             btnRetrieve.Visible = false;
+            txtqty.KeyPress += new KeyPressEventHandler(txtqty_KeyPress);
+
         }
 
         public void SetFullName(string fullName, string itemInventoryID)
@@ -218,6 +220,30 @@ namespace Ingredients.FORMS
                 button1.Visible = true;
             }
         }
+        private void txtqty_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // Allow control keys (like backspace)
+            if (char.IsControl(e.KeyChar))
+            {
+                return;
+            }
+
+            // Allow only one decimal point
+            if (e.KeyChar == '.' && txtqty.Text.Contains("."))
+            {
+                MessageBox.Show("Only one decimal point is allowed.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                e.Handled = true; // Prevent further processing of this character
+                return;
+            }
+
+            // Allow only digits or decimal point
+            if (!char.IsDigit(e.KeyChar) && e.KeyChar != '.')
+            {
+                MessageBox.Show("Please enter numbers only.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                e.Handled = true; // Prevent further processing of this character
+            }
+        }
+
 
         private void button1_Click(object sender, EventArgs e)
         {
