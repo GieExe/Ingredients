@@ -1,14 +1,7 @@
 ﻿using Ingredients.Class;
 using Ingredients.FORMS;
-using Org.BouncyCastle.Utilities;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Ingredients
@@ -17,14 +10,20 @@ namespace Ingredients
     {
         private fetchItemInventory itemInventoryGETSET = new fetchItemInventory();
         private fetchIngredientsTable ingredientsTable = new fetchIngredientsTable();
-        private DataTable itemTable; // Holds the data for the DataGridView
+        private DataTable itemTable; // Holds the original data for the DataGridView
+        private DataTable filteredTable; // Holds the filtered data after search
+
+        // Pagination variables
+        private int currentPage = 1;
+        private int pageSize = 30; // Number of records per page
+        private int totalRecords;
+        private int totalPages;
 
         public Form1()
         {
             InitializeComponent();
             LoadItemData(); // Load the data into the DataGridView when the form loads
             txtSearch.TextChanged += txtSearch_TextChanged; // Subscribe to the TextChanged event
-            
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -33,6 +32,7 @@ namespace Ingredients
             dataGridView1.ScrollBars = ScrollBars.Both;  // Enable both horizontal and vertical scrollbars
             txtSearch.Focus();
         }
+
         private void Form1_Activated(object sender, EventArgs e)
         {
             txtSearch.Focus();
@@ -43,109 +43,138 @@ namespace Ingredients
             itemTable = itemInventoryGETSET.GetAllItem(); // Retrieve data
 
             // Check if itemTable contains rows
-            if (itemTable != null && itemTable.Rows.Count >= 0)
+            if (itemTable != null && itemTable.Rows.Count > 0)
             {
-                dataGridView1.DataSource = itemTable; // Bind the data directly to the DataGridView
-                dataGridView1.Columns["ListID"].HeaderText = "List ID";
-                dataGridView1.Columns["Name"].HeaderText = "Name";
-                dataGridView1.Columns["FullName"].HeaderText = "FullName";
-
-                dataGridView1.Columns["ListID"].Visible = false;
+                filteredTable = itemTable.Copy(); // Initially, filteredTable is a copy of itemTable
+                totalRecords = filteredTable.Rows.Count;
+                totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+                lblTotalPage.Text = totalPages.ToString(); // Display total number of pages
+                LoadPage(); // Load the first page
             }
             else
             {
-                // Handle case where no items are retrieved
                 MessageBox.Show("No items found in the inventory.");
                 dataGridView1.DataSource = null; // Clear the DataGridView if no data
             }
         }
 
+        private void LoadPage()
+        {
+            // Get a subset of the rows for the current page
+            DataTable pagedTable = filteredTable.Clone(); // Create an empty table with the same structure
+            int startIndex = (currentPage - 1) * pageSize;
 
+            // Copy the rows from the filtered table to the paged table
+            for (int i = startIndex; i < startIndex + pageSize && i < totalRecords; i++)
+            {
+                pagedTable.ImportRow(filteredTable.Rows[i]);
+            }
+
+            dataGridView1.DataSource = pagedTable; // Bind the paged data to the DataGridView
+            dataGridView1.Columns["ListID"].HeaderText = "List ID";
+            dataGridView1.Columns["Name"].HeaderText = "Name";
+            dataGridView1.Columns["FullName"].HeaderText = "FullName";
+
+            dataGridView1.Columns["ListID"].Visible = false;
+
+            // Update the current page label
+            lblCurrent.Text = currentPage.ToString();
+        }
 
         private void txtSearch_TextChanged(object sender, EventArgs e)
         {
             if (itemTable != null && itemTable.Rows.Count > 0)
             {
-                // Prepare the filter expression to search both 'Name' and 'FullName' columns
+                // Prepare the filter expression to search both 'ListID', 'Name', and 'FullName' columns
                 string filterExpression = string.Format("ListID LIKE '%{0}%' OR Name LIKE '%{0}%' OR FullName LIKE '%{0}%'", txtSearch.Text);
 
                 // Create a DataView based on the original DataTable
                 DataView dv = new DataView(itemTable);
                 dv.RowFilter = filterExpression; // Apply the filter
 
-                // Bind the filtered DataView to the DataGridView
-                dataGridView1.DataSource = dv;
+                // Paginate the filtered results
+                filteredTable = dv.ToTable(); // Convert DataView back to DataTable
+                totalRecords = filteredTable.Rows.Count;
+                totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+
+                // Reset pagination to the first page after search
+                currentPage = 1;
+                lblTotalPage.Text = totalPages.ToString(); // Update total pages label
+                LoadPage(); // Load the filtered data with pagination
             }
             else
             {
-                // If there are no items, clear the DataGridView
-                dataGridView1.DataSource = null;
-               
+                dataGridView1.DataSource = null; // If there are no items, clear the DataGridView
             }
         }
 
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-            // Check if the clicked cell is valid
             if (e.RowIndex >= 0) // Ensure the row index is valid
             {
-                // Get the selected row
                 DataGridViewRow selectedRow = dataGridView1.Rows[e.RowIndex];
-
-                // Retrieve the full name and item inventory ID from the selected row
-                // Retrieve the full name and item inventory ID from the selected row
-                string fullName = selectedRow.Cells["FullName"].Value.ToString(); // Adjust column name if necessary
-                string itemInventoryID = selectedRow.Cells["ListID"].Value.ToString(); // Adjust this to match your actual column name
+                string fullName = selectedRow.Cells["FullName"].Value.ToString();
+                string itemInventoryID = selectedRow.Cells["ListID"].Value.ToString();
                 string Name = selectedRow.Cells["Name"].Value.ToString();
-                // Create an instance of the AddIngredients form
+
                 addIngredients addIngredientsForm = new addIngredients();
-
-                // Set the full name in the AddIngredients form
                 addIngredientsForm.SetFullName(fullName, itemInventoryID);
-
-                // Load the ingredient data based on the item inventory ID
                 addIngredientsForm.LoadIngredientData(itemInventoryID);
-
-                // Show the AddIngredients form
-                addIngredientsForm.ShowDialog(); // Show as a modal dialog
+                addIngredientsForm.ShowDialog();
             }
-        }
-
-        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-
         }
 
         private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-
-            // Check if the clicked cell is valid
             if (e.RowIndex >= 0) // Ensure the row index is valid
             {
-                // Get the selected row
                 DataGridViewRow selectedRow = dataGridView1.Rows[e.RowIndex];
-
-                // Retrieve the full name and item inventory ID from the selected row
-                string fullName = selectedRow.Cells["FullName"].Value.ToString(); // Adjust column name if necessary
-                string itemInventoryID = selectedRow.Cells["ListID"].Value.ToString(); // Adjust this to match your actual column name
+                string fullName = selectedRow.Cells["FullName"].Value.ToString();
+                string itemInventoryID = selectedRow.Cells["ListID"].Value.ToString();
                 string Name = selectedRow.Cells["Name"].Value.ToString();
-                // Create an instance of the AddIngredients form
+
                 addIngredients addIngredientsForm = new addIngredients();
-
-                // Set the full name in the AddIngredients form
                 addIngredientsForm.SetFullName(fullName, itemInventoryID);
-
-                // Load the ingredient data based on the item inventory ID
                 addIngredientsForm.LoadIngredientData(itemInventoryID);
-
-                // Show the AddIngredients form
-                addIngredientsForm.ShowDialog(); // Show as a modal dialog
+                addIngredientsForm.ShowDialog();
             }
         }
 
-        private void dataGridView1_CellContentClick_1(object sender, DataGridViewCellEventArgs e)
+        // Pagination button handlers
+        private void btnNext_Click_1(object sender, EventArgs e)
         {
+            if (currentPage < totalPages)
+            {
+                currentPage++;
+                LoadPage(); // Load the next page
+            }
+        }
 
+        private void btnPrev_Click(object sender, EventArgs e)
+        {
+            if (currentPage > 1)
+            {
+                currentPage--;
+                LoadPage(); // Load the previous page
+            }
+        }
+
+        private void btnLast_Click_1(object sender, EventArgs e)
+        {
+            if (currentPage != totalPages)
+            {
+                currentPage = totalPages; // Go to the last page
+                LoadPage();
+            }
+        }
+
+        private void btnFirst_Click_1(object sender, EventArgs e)
+        {
+            if (currentPage != 1)
+            {
+                currentPage = 1; // Go to the first page
+                LoadPage();
+            }
         }
     }
 }
