@@ -1,5 +1,6 @@
 ﻿using Ingredients.Class;
 using Ingredients.Object;
+using MySql.Data.MySqlClient;
 using Org.BouncyCastle.Utilities;
 using System;
 using System.Data;
@@ -17,9 +18,9 @@ namespace Ingredients.FORMS
             InitializeComponent();
             LoadItemData();
             txtIngredients.TextChanged += txtIngredients_TextChanged;
-            textBox1.Visible = false;
-            txtID.Visible = false;
             txtHiddenID.Visible = false;
+            txtID.Visible = false;
+            textBox1.Visible = false;
             btnUpdate.Visible = false;
             btnRetrieve.Visible = false;
             txtqty.KeyPress += new KeyPressEventHandler(txtqty_KeyPress);
@@ -248,8 +249,8 @@ namespace Ingredients.FORMS
         private void button1_Click(object sender, EventArgs e)
         {
             string ingredientsID = textBox1.Text;  // Get the ingredient ID from the hidden textbox
-            string qty = txtqty.Text;              // Get the quantity from txtqty
-            string itemInventoryID = txtID.Text;   // Get the item inventory ID from the hidden textbox
+            string qty = txtqty.Text;               // Get the quantity from txtqty
+            string itemInventoryID = txtID.Text;    // Get the item inventory ID from the hidden textbox
 
             // Validation 1: Ensure an ingredient is selected
             if (string.IsNullOrEmpty(ingredientsID))
@@ -265,14 +266,12 @@ namespace Ingredients.FORMS
                 return;
             }
 
-            // Validation 3: Ensure the quantity is a valid decimal number
-            if (!decimal.TryParse(qty, out decimal parsedQty) || parsedQty < 0)
+            // Validation 3: Ensure the quantity is a valid integer number
+            if (!int.TryParse(qty, out int parsedQty) || parsedQty < 0)
             {
-                MessageBox.Show("Please enter a valid non-negative number for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Please enter a valid non-negative integer for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
-
 
             // Validation 4: Ensure that the item inventory ID is valid
             if (string.IsNullOrEmpty(itemInventoryID))
@@ -281,24 +280,39 @@ namespace Ingredients.FORMS
                 return;
             }
 
-            // If all validations pass, proceed to insert the ingredients
+            // If all validations pass, proceed to check for existing ingredient
             try
             {
-                ingredientsTableFetcher.InsertIngredients(ingredientsID, qty, itemInventoryID);
+                if (ingredientsTableFetcher.CheckIfIngredientExists(ingredientsID, itemInventoryID))
+                {
+                    // Retrieve the current quantity and update the total
+                    int currentQty = ingredientsTableFetcher.GetCurrentQuantity(ingredientsID, itemInventoryID);
+                    int newQty = currentQty + parsedQty; // Add the new quantity to the existing one
 
-                // Refresh the ingredients data in the DataGridView after inserting
+                    // Update the ingredient with the new total quantity
+                    ingredientsTableFetcher.UpdateIngredientsIfExist(newQty.ToString(), ingredientsID, itemInventoryID);
+                }
+                else
+                {
+                    // Insert the new ingredient if it does not exist
+                    ingredientsTableFetcher.InsertIngredients(ingredientsID, qty, itemInventoryID);
+                   
+                }
+
+                // Refresh the ingredients data in the DataGridView after operation
                 LoadIngredientData(itemInventoryID);
 
-
-
-                // Optionally, clear the fields after successful insertion
+                // Optionally, clear the fields after successful insertion or update
                 ClearFields();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred while adding the ingredient: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"An error occurred while processing the ingredient: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+
+        // Method to check if an ingredient exists in the database
 
         private void button2_Click(object sender, EventArgs e)
         {
@@ -325,6 +339,7 @@ namespace Ingredients.FORMS
             btnRetrieve.Visible = false;
             textBox1.Clear();
             txtqty.Clear();
+            txtHiddenID.Clear();
         }
 
         private void btnUpdate_Click(object sender, EventArgs e)
@@ -377,10 +392,11 @@ namespace Ingredients.FORMS
                 
             }
         }
-
+       
         private void addIngredients_Load(object sender, EventArgs e)
         {
 
         }
+
     }
 }
