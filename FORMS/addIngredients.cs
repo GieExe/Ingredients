@@ -13,6 +13,7 @@ namespace Ingredients.FORMS
         private fetchIngredientsTable ingredientsTableFetcher = new fetchIngredientsTable();
         private fetchItemInventory itemInventoryGETSET = new fetchItemInventory();
         private DataTable itemTable;
+        private string originalValue = "";
         public addIngredients()
         {
             InitializeComponent();
@@ -24,9 +25,15 @@ namespace Ingredients.FORMS
             btnUpdate.Visible = false;
             btnRetrieve.Visible = false;
             txtqty.KeyPress += new KeyPressEventHandler(txtqty_KeyPress);
+            dataGridView1.CellBeginEdit += new DataGridViewCellCancelEventHandler(dataGridView1_CellBeginEdit);
 
+          
+            
         }
-
+        private void addIngredients_Activated(object sender, EventArgs e)
+        {
+            txtIngredients.Focus();
+        }
         public void SetFullName(string fullName, string itemInventoryID)
         {
             // Assuming you have a Label or TextBox to display the full name
@@ -43,6 +50,13 @@ namespace Ingredients.FORMS
                 dataGridView2.DataSource = itemTable;
                 dataGridView2.Columns["ListID"].HeaderText = "List ID";
                 dataGridView2.Columns["FullName"].HeaderText = "Ingredients List";
+
+                foreach (DataGridViewColumn column in dataGridView2.Columns)
+                {
+                    
+                        column.ReadOnly = true;  // Set all other columns as read-only
+                    
+                }
             }
             else
             {
@@ -59,7 +73,6 @@ namespace Ingredients.FORMS
 
             // Create an empty DataTable with the same structure
             DataTable emptyTable = new DataTable();
-
             emptyTable.Columns.Add("Ingredient ID");
             emptyTable.Columns.Add("Quantity");
             emptyTable.Columns.Add("Item Inventory ID");
@@ -75,18 +88,31 @@ namespace Ingredients.FORMS
                 dataGridView1.Columns["qty"].HeaderText = "Quantity";
                 dataGridView1.Columns["iteminventory_id"].HeaderText = "Item Inventory ID";
 
+                // Hide the ID column
                 dataGridView1.Columns["ID"].Visible = false;
+                dataGridView1.ClearSelection();
+                // Set all columns as read-only except the "Quantity" column
+                foreach (DataGridViewColumn column in dataGridView1.Columns)
+                {
+                    column.SortMode = DataGridViewColumnSortMode.NotSortable;
+                    if (column.Name == "qty")
+                    {
+                        column.ReadOnly = false; // Allow editing for "Quantity" column
+                    }
+                    else
+                    {
+                        column.ReadOnly = true;  // Set all other columns as read-only
+                    }
+                }
             }
             else
             {
                 // No data available, bind the empty table to the DataGridView
                 dataGridView1.DataSource = emptyTable;
-
             }
-
-         
-
         }
+
+
 
         private void dataGridView2_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -104,7 +130,7 @@ namespace Ingredients.FORMS
                 txtIngredients.Text = fullName;
                 textBox1.Text = ingredientsID;
 
-
+                txtqty.Focus();
 
             }
 
@@ -124,7 +150,7 @@ namespace Ingredients.FORMS
                 // Set the full name to the txtIngredients TextBox
                 txtIngredients.Text = fullName;
                 textBox1.Text = ingredientsID;
-
+                txtqty.Focus();
 
             }
         }
@@ -152,6 +178,7 @@ namespace Ingredients.FORMS
                     txtIngredients.Text = "No FullName found";
                 }
 
+            
                 txtHiddenID.Text = hiddenID;
                 txtqty.Text = qty;
                 textBox1.Text = ingredientsID;
@@ -392,11 +419,128 @@ namespace Ingredients.FORMS
                 
             }
         }
-       
+      
+
+        private void dataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            // Store the original value when editing begins
+            if (e.ColumnIndex == dataGridView1.Columns["qty"].Index)
+            {
+                originalValue = dataGridView1.Rows[e.RowIndex].Cells["qty"].Value.ToString();
+            }
+
+
+
+        }
+        private void dataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+     
+            if (e.ColumnIndex == dataGridView1.Columns["qty"].Index)
+            {
+                int rowIndex = e.RowIndex;
+                string ingredientID = dataGridView1.Rows[rowIndex].Cells["ingredient_id"].Value.ToString();
+                string itemInventoryID = dataGridView1.Rows[rowIndex].Cells["iteminventory_id"].Value.ToString();
+                string newQty = dataGridView1.Rows[rowIndex].Cells["qty"].Value.ToString().Trim(); // Trim whitespace
+
+               
+               
+                if (newQty != originalValue)
+                {
+                   
+                    if (decimal.TryParse(newQty, out decimal parsedQty) && parsedQty >= 0)
+                    {
+                        var result = MessageBox.Show("Are you sure you want to update this Quantity?", "Confirm Update",
+                                                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                        if (result == DialogResult.Yes)
+                        {
+                            try
+                            {
+                                ingredientsTableFetcher.UpdateIngredientsIfExist(newQty, ingredientID, itemInventoryID);
+                                LoadIngredientData(itemInventoryID);
+                                // Clear and reset UI controls as needed
+                                button1.Visible = true;
+                                btnUpdate.Visible = false;
+                                // Clear fields after updating
+                                btnRetrieve.Visible = false;
+                                button2.Visible = true;
+                                ClearFields();
+                                txtIngredients.Focus();
+                               
+                              
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Error updating quantity: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        }
+                        else
+                        {
+                            // Reset the value back to originalValue if user clicks "No"
+                            dataGridView1.Rows[rowIndex].Cells["qty"].Value = originalValue;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Please enter a valid non-negative number.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        dataGridView1.Rows[rowIndex].Cells["qty"].Value = originalValue;
+                        dataGridView1.CancelEdit(); // Optionally cancel the edit
+                    }
+                }
+
+            }
+
+        }
+
+
+        private void dataGridView1_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
+        {
+            // Check if we are editing the "Quantity" column
+            if (dataGridView1.CurrentCell.ColumnIndex == dataGridView1.Columns["qty"].Index)
+            {
+                TextBox txtQty = e.Control as TextBox;
+
+                if (txtQty != null)
+                {
+                    // Unsubscribe from previous handlers if any to avoid multiple event calls
+                    txtQty.KeyPress -= TxtQty_KeyPress;
+
+                    // Attach the new KeyPress event handler
+                    txtQty.KeyPress += TxtQty_KeyPress;
+                }
+            }
+        }
+        private void TxtQty_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            TextBox txtqty = sender as TextBox;
+
+            // Allow control keys (like backspace)
+            if (char.IsControl(e.KeyChar))
+            {
+                return;
+            }
+
+            // Allow only one decimal point
+            if (e.KeyChar == '.' && txtqty.Text.Contains("."))
+            {
+                MessageBox.Show("Only one decimal point is allowed.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                e.Handled = true; // Prevent further processing of this character
+                return;
+            }
+
+            // Allow only digits or decimal point
+            if (!char.IsDigit(e.KeyChar) && e.KeyChar != '.')
+            {
+                MessageBox.Show("Please enter numbers only.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                e.Handled = true; // Prevent further processing of this character
+            }
+        }
+
         private void addIngredients_Load(object sender, EventArgs e)
         {
 
         }
 
+        
     }
 }

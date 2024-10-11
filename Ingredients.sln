@@ -5,6 +5,8 @@ VisualStudioVersion = 17.11.35222.181
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ingredients", "Ingredients.csproj", "{69C1E15B-40AE-412D-9038-676FC23988AA}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "MilestoneIngredients", "..\MilestoneIngredients\MilestoneIngredients.vdproj", "{1555290E-27C6-4808-B1A5-1606666E7377}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,8 @@ Global
 		{69C1E15B-40AE-412D-9038-676FC23988AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69C1E15B-40AE-412D-9038-676FC23988AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69C1E15B-40AE-412D-9038-676FC23988AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1555290E-27C6-4808-B1A5-1606666E7377}.Debug|Any CPU.ActiveCfg = Debug
+		{1555290E-27C6-4808-B1A5-1606666E7377}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
