@@ -239,12 +239,14 @@ namespace Ingredients.FORMS
                 return;
             }
 
-            // Validation 3: Ensure the quantity is a valid number
-            if (!int.TryParse(qty, out int parsedQty) || parsedQty <= 0)
+            // Validation 3: Ensure the quantity is a valid decimal number
+            if (!decimal.TryParse(qty, out decimal parsedQty) || parsedQty < 0)
             {
-                MessageBox.Show("Please enter a valid positive number for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Please enter a valid non-negative number for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+
 
             // Validation 4: Ensure that the item inventory ID is valid
             if (string.IsNullOrEmpty(itemInventoryID))
@@ -348,6 +350,11 @@ namespace Ingredients.FORMS
                 ClearFields();
                 
             }
+        }
+
+        private void addIngredients_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }
