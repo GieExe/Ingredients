@@ -5,6 +5,10 @@ using Org.BouncyCastle.Utilities;
 using System;
 using System.Data;
 using System.Windows.Forms;
+using System.Drawing.Text;
+using System.Runtime.InteropServices;
+using System.IO;
+using System.Drawing;
 
 namespace Ingredients.FORMS
 {
@@ -14,6 +18,15 @@ namespace Ingredients.FORMS
         private fetchItemInventory itemInventoryGETSET = new fetchItemInventory();
         private DataTable itemTable;
         private string originalValue = "";
+
+        private PrivateFontCollection _pfc = new PrivateFontCollection();
+        private DataTable filteredTable; // Holds the filtered data after search
+                                         // Pagination variables
+        private int currentPage = 1;
+        private int pageSize = 30; // Number of records per page
+        private int totalRecords;
+        private int totalPages;
+
         public addIngredients()
         {
             InitializeComponent();
@@ -27,9 +40,72 @@ namespace Ingredients.FORMS
             txtqty.KeyPress += new KeyPressEventHandler(txtqty_KeyPress);
             dataGridView1.CellBeginEdit += new DataGridViewCellCancelEventHandler(dataGridView1_CellBeginEdit);
 
-          
+           
+
+        }
+        private void LoadCustomFont()
+        {
+
+            // Load "Outfit-Regular.ttf" from resources
+            string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
+
+
+            if (File.Exists(fontPath))
+                {
+                    var fontBytes = File.ReadAllBytes(fontPath);
+                    IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
+                    Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
+                    _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
+                    Marshal.FreeCoTaskMem(fontPtr);
+                }
+                else
+                {
+                    MessageBox.Show("Font file not found: " + fontPath);
+                }
+
+                if (_pfc.Families.Length == 0)
+                {
+                    MessageBox.Show("Font loading failed.");
+                }
             
         }
+        private void addIngredients_Load(object sender, EventArgs e)
+        {
+            LoadCustomFont();
+
+            // Apply custom font to all controls
+            // Check if the font family is available before applying it
+            if (_pfc.Families.Length > 0)
+            {
+                foreach (Control control in this.Controls)
+                {
+                    control.Font = new Font(_pfc.Families[0], control.Font.Size, control.Font.Style);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Custom font could not be applied.");
+            }
+            SetDataGridViewHeaderFont(dataGridView2);
+            SetDataGridViewHeaderFont(dataGridView1);
+            SetButtonFont(button1, btnUpdate, btnRetrieve, button2);
+        }
+        private void SetDataGridViewHeaderFont(DataGridView dgv)
+        {
+            // Set the header font using the custom font
+            dgv.ColumnHeadersDefaultCellStyle.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
+            dgv.DefaultCellStyle.Font = new Font(_pfc.Families[0], 10);
+
+        }
+        private void SetButtonFont(params Button[] buttons)
+        {
+            foreach (Button btn in buttons)
+            {
+                // Set the font for each button
+                btn.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
+            }
+        }
+
         private void addIngredients_Activated(object sender, EventArgs e)
         {
             txtIngredients.Focus();
@@ -47,20 +123,23 @@ namespace Ingredients.FORMS
             // Check if itemTable contains rows
             if (itemTable != null && itemTable.Rows.Count > 0)
             {
-                dataGridView2.DataSource = itemTable;
+                filteredTable = itemTable.Copy(); // Initially, filteredTable is a copy of itemTable
+                totalRecords = filteredTable.Rows.Count;
+                totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+                lblTotalPage.Text = totalPages.ToString(); // Display total number of pages
+                LoadPage(); // Load the first page
+
+                // Configure DataGridView columns
                 dataGridView2.Columns["ListID"].HeaderText = "List ID";
                 dataGridView2.Columns["FullName"].HeaderText = "Ingredients List";
 
                 foreach (DataGridViewColumn column in dataGridView2.Columns)
                 {
-                    
-                        column.ReadOnly = true;  // Set all other columns as read-only
-                    
+                    column.ReadOnly = true; // Set all columns as read-only
                 }
             }
             else
             {
-                // Handle case where no items are retrieved
                 MessageBox.Show("No items found in the inventory.");
                 dataGridView2.DataSource = null; // Clear the DataGridView if no data
             }
@@ -73,9 +152,10 @@ namespace Ingredients.FORMS
 
             // Create an empty DataTable with the same structure
             DataTable emptyTable = new DataTable();
-            emptyTable.Columns.Add("Ingredient ID");
+            emptyTable.Columns.Add("Item Name");
             emptyTable.Columns.Add("Quantity");
             emptyTable.Columns.Add("Item Inventory ID");
+          
 
             // Check if the retrieved DataTable has rows
             if (ingredientTable != null && ingredientTable.Rows.Count > 0)
@@ -85,12 +165,20 @@ namespace Ingredients.FORMS
                 // Set column headers
                 dataGridView1.Columns["ID"].HeaderText = "ID";
                 dataGridView1.Columns["ingredient_id"].HeaderText = "Ingredient ID";
+                dataGridView1.Columns["Name"].HeaderText = "Item Name";
                 dataGridView1.Columns["qty"].HeaderText = "Quantity";
                 dataGridView1.Columns["iteminventory_id"].HeaderText = "Item Inventory ID";
 
-                // Hide the ID column
+                // Hide the ID and Ingredient ID columns
                 dataGridView1.Columns["ID"].Visible = false;
+                dataGridView1.Columns["ingredient_id"].Visible = false;
+
+                // Set column order (Item Name should come before Quantity)
+                dataGridView1.Columns["Name"].DisplayIndex = 2;  // Set Item Name before Quantity
+                dataGridView1.Columns["qty"].DisplayIndex = 3;
+
                 dataGridView1.ClearSelection();
+
                 // Set all columns as read-only except the "Quantity" column
                 foreach (DataGridViewColumn column in dataGridView1.Columns)
                 {
@@ -226,20 +314,26 @@ namespace Ingredients.FORMS
         {
             if (itemTable != null && itemTable.Rows.Count > 0)
             {
-                // Prepare the filter expression to search both 'Name' and 'FullName' columns
-                string filterExpression = string.Format(" FullName LIKE '%{0}%'", txtIngredients.Text);
+                // Prepare the filter expression to search the 'FullName' column
+                string filterExpression = string.Format("FullName LIKE '%{0}%'", txtIngredients.Text);
 
                 // Create a DataView based on the original DataTable
                 DataView dv = new DataView(itemTable);
                 dv.RowFilter = filterExpression; // Apply the filter
 
-                // Bind the filtered DataView to the DataGridView
-                dataGridView2.DataSource = dv;
+                // Convert DataView back to DataTable
+                filteredTable = dv.ToTable();
+                totalRecords = filteredTable.Rows.Count;
+                totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+
+                // Reset pagination to the first page after search
+                currentPage = 1;
+                lblTotalPage.Text = totalPages.ToString(); // Update total pages label
+                LoadPage(); // Load the filtered data with pagination
             }
             else
             {
-                // If there are no items, clear the DataGridView
-                dataGridView2.DataSource = null;
+                dataGridView2.DataSource = null; // If there are no items, clear the DataGridView
             }
 
             if (txtIngredients.Text == null)
@@ -283,6 +377,7 @@ namespace Ingredients.FORMS
             if (string.IsNullOrEmpty(ingredientsID))
             {
                 MessageBox.Show("Please select an ingredient from the list.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtIngredients.Focus();
                 return;
             }
 
@@ -290,6 +385,8 @@ namespace Ingredients.FORMS
             if (string.IsNullOrEmpty(qty))
             {
                 MessageBox.Show("Please enter a quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                txtqty.Focus();
                 return;
             }
 
@@ -297,6 +394,7 @@ namespace Ingredients.FORMS
             if (!int.TryParse(qty, out int parsedQty) || parsedQty < 0)
             {
                 MessageBox.Show("Please enter a valid non-negative integer for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtqty.Focus();
                 return;
             }
 
@@ -323,6 +421,8 @@ namespace Ingredients.FORMS
                 {
                     // Insert the new ingredient if it does not exist
                     ingredientsTableFetcher.InsertIngredients(ingredientsID, qty, itemInventoryID);
+
+
                    
                 }
 
@@ -367,6 +467,7 @@ namespace Ingredients.FORMS
             textBox1.Clear();
             txtqty.Clear();
             txtHiddenID.Clear();
+            txtIngredients.Focus();
         }
 
         private void btnUpdate_Click(object sender, EventArgs e)
@@ -536,11 +637,58 @@ namespace Ingredients.FORMS
             }
         }
 
-        private void addIngredients_Load(object sender, EventArgs e)
+        private void btnLast_Click(object sender, EventArgs e)
         {
-
+            if (currentPage != totalPages)
+            {
+                currentPage = totalPages; // Go to the last page
+                LoadPage();
+            }
         }
 
-        
+        private void btnNext_Click(object sender, EventArgs e)
+        {
+
+            if (currentPage < totalPages)
+            {
+                currentPage++;
+                LoadPage(); // Load the next page
+            }
+        }
+
+        private void btnPrev_Click(object sender, EventArgs e)
+        {
+
+            if (currentPage > 1)
+            {
+                currentPage--;
+                LoadPage(); // Load the previous page
+            }
+        }
+
+        private void btnFirst_Click(object sender, EventArgs e)
+        {
+            if (currentPage != 1)
+            {
+                currentPage = 1; // Go to the first page
+                LoadPage();
+            }
+        }
+        private void LoadPage()
+        {
+            // Get a subset of the rows for the current page
+            DataTable pagedTable = filteredTable.Clone(); // Create an empty table with the same structure
+            int startIndex = (currentPage - 1) * pageSize;
+
+            // Copy the rows from the filtered table to the paged table
+            for (int i = startIndex; i < startIndex + pageSize && i < totalRecords; i++)
+            {
+                pagedTable.ImportRow(filteredTable.Rows[i]);
+            }
+
+            dataGridView2.DataSource = pagedTable; // Bind the paged data to the DataGridView
+            lblCurrent.Text = currentPage.ToString(); // Update the current page label
+        }
+
     }
 }

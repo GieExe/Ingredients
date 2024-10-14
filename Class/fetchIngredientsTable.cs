@@ -16,8 +16,24 @@ namespace Ingredients.Class
         {
             DataTable itemTable = new DataTable();
 
-            string query = "SELECT ID, ingredient_id, qty, iteminventory_id from ingredients_table WHERE iteminventory_id = @iteminventory_id;";
+            // Modified query to join iteminventory and ingredients_table, and select Name
+            string query = @"
+        SELECT 
+            i.ID, 
+            i.ingredient_id, 
+            i.qty, 
+            i.iteminventory_id,
+            inv.Name 
+        FROM 
+            ingredients_table i
+        INNER JOIN 
+            iteminventory inv
+        ON 
+            i.ingredient_id = inv.ListID
+        WHERE 
+            i.iteminventory_id = @iteminventory_id;";
 
+            // Assuming the connection string is stored in a method or class property
             string connectionString = ConnectionString.GetConnectionString();
 
             using (MySqlConnection connection = new MySqlConnection(connectionString))
@@ -27,22 +43,24 @@ namespace Ingredients.Class
                     connection.Open();
                     using (MySqlCommand command = new MySqlCommand(query, connection))
                     {
+                        // Set parameter value for iteminventory_id
                         command.Parameters.AddWithValue("@iteminventory_id", itemInventoryID);
-                       
+
+                        // Use MySqlDataAdapter to execute the query and fill the DataTable
                         MySqlDataAdapter adapter = new MySqlDataAdapter(command);
-                        adapter.Fill(itemTable);
-
-
+                        adapter.Fill(itemTable);  // Fill the DataTable with the query result
                     }
                 }
                 catch (Exception ex)
                 {
-
+                    // Handle exceptions (e.g., database connection issues)
                     MessageBox.Show(ex.Message);
                 }
             }
-            return itemTable;
+
+            return itemTable;  // Return the filled DataTable
         }
+
         public void InsertIngredients(string ingredientsID, string qty, string itemInventoryID)
         {
             // SQL query to insert a new ingredient into the ingredients_table

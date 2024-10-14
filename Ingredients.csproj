@@ -148,10 +148,25 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="Resources\Outfit\Outfit-VariableFont_wght.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-Black.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-Bold.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-ExtraBold.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-ExtraLight.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-Light.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-Medium.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-Regular.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Outfit\static\Outfit-SemiBold.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-Thin.ttf" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Resources\Outfit\OFL.txt" />
+    <Content Include="Resources\Outfit\README.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

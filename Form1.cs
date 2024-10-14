@@ -3,6 +3,11 @@ using Ingredients.FORMS;
 using System;
 using System.Data;
 using System.Windows.Forms;
+using System.Drawing.Text;
+using System.Runtime.InteropServices;
+using System.IO;
+using System.Drawing;
+using Org.BouncyCastle.Asn1.Pkcs;
 
 namespace Ingredients
 {
@@ -12,6 +17,7 @@ namespace Ingredients
         private fetchIngredientsTable ingredientsTable = new fetchIngredientsTable();
         private DataTable itemTable; // Holds the original data for the DataGridView
         private DataTable filteredTable; // Holds the filtered data after search
+        private PrivateFontCollection _pfc = new PrivateFontCollection();
 
         // Pagination variables
         private int currentPage = 1;
@@ -25,14 +31,60 @@ namespace Ingredients
             LoadItemData(); // Load the data into the DataGridView when the form loads
             txtSearch.TextChanged += txtSearch_TextChanged; // Subscribe to the TextChanged event
         }
+        private void LoadCustomFont()
+        {
+            // Load "Outfit-Regular.ttf" from resources
+            string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
 
+
+            if (File.Exists(fontPath))
+            {
+                var fontBytes = File.ReadAllBytes(fontPath);
+                IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
+                Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
+                _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
+                Marshal.FreeCoTaskMem(fontPtr);
+            }
+            else
+            {
+                MessageBox.Show("Font file not found: " + fontPath);
+            }
+
+            if (_pfc.Families.Length == 0)
+            {
+                MessageBox.Show("Font loading failed.");
+            }
+        }
         private void Form1_Load(object sender, EventArgs e)
         {
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;  // Optional, resize columns to fit
             dataGridView1.ScrollBars = ScrollBars.Both;  // Enable both horizontal and vertical scrollbars
             txtSearch.Focus();
-        }
 
+            LoadCustomFont();
+
+            // Apply custom font to all controls
+            // Check if the font family is available before applying it
+            if (_pfc.Families.Length > 0)
+            {
+                foreach (Control control in this.Controls)
+                {
+                    control.Font = new Font(_pfc.Families[0], control.Font.Size, control.Font.Style);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Custom font could not be applied.");
+            }
+            SetDataGridViewHeaderFont(dataGridView1);
+        }
+        private void SetDataGridViewHeaderFont(DataGridView dgv)
+        {
+            // Set the header font using the custom font
+            dgv.ColumnHeadersDefaultCellStyle.Font = new Font(_pfc.Families[0], 14, FontStyle.Bold); // Set the desired size and style
+            dgv.DefaultCellStyle.Font = new Font(_pfc.Families[0], 12);
+
+        }
         private void Form1_Activated(object sender, EventArgs e)
         {
             txtSearch.Focus();
@@ -176,5 +228,6 @@ namespace Ingredients
                 LoadPage();
             }
         }
+       
     }
 }
