@@ -31,60 +31,60 @@ namespace Ingredients
             LoadItemData(); // Load the data into the DataGridView when the form loads
             txtSearch.TextChanged += txtSearch_TextChanged; // Subscribe to the TextChanged event
         }
-        private void LoadCustomFont()
-        {
-            // Load "Outfit-Regular.ttf" from resources
-            string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
+        //private void LoadCustomFont()
+        //{
+        //    // Load "Outfit-Regular.ttf" from resources
+        //    string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
 
 
-            if (File.Exists(fontPath))
-            {
-                var fontBytes = File.ReadAllBytes(fontPath);
-                IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
-                Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
-                _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
-                Marshal.FreeCoTaskMem(fontPtr);
-            }
-            else
-            {
-                MessageBox.Show("Font file not found: " + fontPath);
-            }
+        //    if (File.Exists(fontPath))
+        //    {
+        //        var fontBytes = File.ReadAllBytes(fontPath);
+        //        IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
+        //        Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
+        //        _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
+        //        Marshal.FreeCoTaskMem(fontPtr);
+        //    }
+        //    else
+        //    {
+        //        MessageBox.Show("Font file not found: " + fontPath);
+        //    }
 
-            if (_pfc.Families.Length == 0)
-            {
-                MessageBox.Show("Font loading failed.");
-            }
-        }
+        //    if (_pfc.Families.Length == 0)
+        //    {
+        //        MessageBox.Show("Font loading failed.");
+        //    }
+        //}
         private void Form1_Load(object sender, EventArgs e)
         {
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;  // Optional, resize columns to fit
             dataGridView1.ScrollBars = ScrollBars.Both;  // Enable both horizontal and vertical scrollbars
             txtSearch.Focus();
 
-            LoadCustomFont();
+            //LoadCustomFont();
 
-            // Apply custom font to all controls
-            // Check if the font family is available before applying it
-            if (_pfc.Families.Length > 0)
-            {
-                foreach (Control control in this.Controls)
-                {
-                    control.Font = new Font(_pfc.Families[0], control.Font.Size, control.Font.Style);
-                }
-            }
-            else
-            {
-                MessageBox.Show("Custom font could not be applied.");
-            }
-            SetDataGridViewHeaderFont(dataGridView1);
+            //// Apply custom font to all controls
+            //// Check if the font family is available before applying it
+            //if (_pfc.Families.Length > 0)
+            //{
+            //    foreach (Control control in this.Controls)
+            //    {
+            //        control.Font = new Font(_pfc.Families[0], control.Font.Size, control.Font.Style);
+            //    }
+            //}
+            //else
+            //{
+            //    MessageBox.Show("Custom font could not be applied.");
+            //}
+            //SetDataGridViewHeaderFont(dataGridView1);
         }
-        private void SetDataGridViewHeaderFont(DataGridView dgv)
-        {
-            // Set the header font using the custom font
-            dgv.ColumnHeadersDefaultCellStyle.Font = new Font(_pfc.Families[0], 14, FontStyle.Bold); // Set the desired size and style
-            dgv.DefaultCellStyle.Font = new Font(_pfc.Families[0], 12);
+        //private void SetDataGridViewHeaderFont(DataGridView dgv)
+        //{
+        //    // Set the header font using the custom font
+        //    dgv.ColumnHeadersDefaultCellStyle.Font = new Font(_pfc.Families[0], 14, FontStyle.Bold); // Set the desired size and style
+        //    dgv.DefaultCellStyle.Font = new Font(_pfc.Families[0], 12);
 
-        }
+        //}
         private void Form1_Activated(object sender, EventArgs e)
         {
             txtSearch.Focus();
@@ -137,28 +137,53 @@ namespace Ingredients
         {
             if (itemTable != null && itemTable.Rows.Count > 0)
             {
-                // Prepare the filter expression to search both 'ListID', 'Name', and 'FullName' columns
-                string filterExpression = string.Format("ListID LIKE '%{0}%' OR Name LIKE '%{0}%' OR FullName LIKE '%{0}%'", txtSearch.Text);
+                if (!string.IsNullOrEmpty(txtSearch.Text))
+                {
+                    // Prepare the filter expression to search both 'ListID', 'Name', and 'FullName' columns
+                    string filterExpression = string.Format("ListID LIKE '%{0}%' OR Name LIKE '%{0}%' OR FullName LIKE '%{0}%'", txtSearch.Text.Replace("'", "''")); // Escape apostrophes
 
-                // Create a DataView based on the original DataTable
-                DataView dv = new DataView(itemTable);
-                dv.RowFilter = filterExpression; // Apply the filter
+                    // Create a DataView based on the original DataTable
+                    DataView dv = new DataView(itemTable);
+                    dv.RowFilter = filterExpression; // Apply the filter
 
-                // Paginate the filtered results
-                filteredTable = dv.ToTable(); // Convert DataView back to DataTable
-                totalRecords = filteredTable.Rows.Count;
-                totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+                    // Paginate the filtered results
+                    filteredTable = dv.ToTable(); // Convert DataView back to DataTable
+                    totalRecords = filteredTable.Rows.Count;
 
-                // Reset pagination to the first page after search
-                currentPage = 1;
-                lblTotalPage.Text = totalPages.ToString(); // Update total pages label
-                LoadPage(); // Load the filtered data with pagination
+                    // Check if filtered results exist
+                    if (totalRecords > 0)
+                    {
+                        totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+
+                        // Reset pagination to the first page after search
+                        currentPage = 1;
+                        lblTotalPage.Text = totalPages.ToString(); // Update total pages label
+                        LoadPage(); // Load the filtered data with pagination
+                    }
+                    else
+                    {
+                        // No results found, clear DataGridView and reset pagination labels
+                        dataGridView1.DataSource = null;
+                        lblTotalPage.Text = "0"; // No pages
+                    }
+                }
+                else
+                {
+                    // If search text is empty, reset to display all records
+                    filteredTable = itemTable.Copy(); // Reset to original data
+                    totalRecords = filteredTable.Rows.Count;
+                    totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+                    lblTotalPage.Text = totalPages.ToString();
+                    currentPage = 1; // Reset to first page
+                    LoadPage(); // Reload the original data
+                }
             }
             else
             {
-                dataGridView1.DataSource = null; // If there are no items, clear the DataGridView
+                dataGridView1.DataSource = null; // Clear DataGridView if no data is present
             }
         }
+
 
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {

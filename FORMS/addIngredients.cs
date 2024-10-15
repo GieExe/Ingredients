@@ -43,68 +43,68 @@ namespace Ingredients.FORMS
            
 
         }
-        private void LoadCustomFont()
-        {
+        //private void LoadCustomFont()
+        //{
 
-            // Load "Outfit-Regular.ttf" from resources
-            string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
+        //    // Load "Outfit-Regular.ttf" from resources
+        //    string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
 
 
-            if (File.Exists(fontPath))
-                {
-                    var fontBytes = File.ReadAllBytes(fontPath);
-                    IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
-                    Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
-                    _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
-                    Marshal.FreeCoTaskMem(fontPtr);
-                }
-                else
-                {
-                    MessageBox.Show("Font file not found: " + fontPath);
-                }
+        //    if (File.Exists(fontPath))
+        //        {
+        //            var fontBytes = File.ReadAllBytes(fontPath);
+        //            IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
+        //            Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
+        //            _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
+        //            Marshal.FreeCoTaskMem(fontPtr);
+        //        }
+        //        else
+        //        {
+        //            MessageBox.Show("Font file not found: " + fontPath);
+        //        }
 
-                if (_pfc.Families.Length == 0)
-                {
-                    MessageBox.Show("Font loading failed.");
-                }
+        //        if (_pfc.Families.Length == 0)
+        //        {
+        //            MessageBox.Show("Font loading failed.");
+        //        }
             
-        }
+        //}
         private void addIngredients_Load(object sender, EventArgs e)
         {
-            LoadCustomFont();
+            //LoadCustomFont();
 
-            // Apply custom font to all controls
-            // Check if the font family is available before applying it
-            if (_pfc.Families.Length > 0)
-            {
-                foreach (Control control in this.Controls)
-                {
-                    control.Font = new Font(_pfc.Families[0], control.Font.Size, control.Font.Style);
-                }
-            }
-            else
-            {
-                MessageBox.Show("Custom font could not be applied.");
-            }
-            SetDataGridViewHeaderFont(dataGridView2);
-            SetDataGridViewHeaderFont(dataGridView1);
-            SetButtonFont(button1, btnUpdate, btnRetrieve, button2);
+            //// Apply custom font to all controls
+            //// Check if the font family is available before applying it
+            //if (_pfc.Families.Length > 0)
+            //{
+            //    foreach (Control control in this.Controls)
+            //    {
+            //        control.Font = new Font(_pfc.Families[0], control.Font.Size, control.Font.Style);
+            //    }
+            //}
+            //else
+            //{
+            //    MessageBox.Show("Custom font could not be applied.");
+            //}
+            //SetDataGridViewHeaderFont(dataGridView2);
+            //SetDataGridViewHeaderFont(dataGridView1);
+            //SetButtonFont(button1, btnUpdate, btnRetrieve, button2);
         }
-        private void SetDataGridViewHeaderFont(DataGridView dgv)
-        {
-            // Set the header font using the custom font
-            dgv.ColumnHeadersDefaultCellStyle.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
-            dgv.DefaultCellStyle.Font = new Font(_pfc.Families[0], 10);
+        //private void SetDataGridViewHeaderFont(DataGridView dgv)
+        //{
+        //    // Set the header font using the custom font
+        //    dgv.ColumnHeadersDefaultCellStyle.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
+        //    dgv.DefaultCellStyle.Font = new Font(_pfc.Families[0], 10);
 
-        }
-        private void SetButtonFont(params Button[] buttons)
-        {
-            foreach (Button btn in buttons)
-            {
-                // Set the font for each button
-                btn.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
-            }
-        }
+        //} 
+        //private void SetButtonFont(params Button[] buttons)
+        //{
+        //    foreach (Button btn in buttons)
+        //    {
+        //        // Set the font for each button
+        //        btn.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
+        //    }
+        //}
 
         private void addIngredients_Activated(object sender, EventArgs e)
         {
@@ -314,15 +314,19 @@ namespace Ingredients.FORMS
         {
             if (itemTable != null && itemTable.Rows.Count > 0)
             {
-                // Prepare the filter expression to search the 'FullName' column
-                string filterExpression = string.Format("FullName LIKE '%{0}%'", txtIngredients.Text);
+                // Escape apostrophes in the search text
+                string searchText = txtIngredients.Text.Replace("'", "''");
 
-                // Create a DataView based on the original DataTable
-                DataView dv = new DataView(itemTable);
-                dv.RowFilter = filterExpression; // Apply the filter
+                // Use DataTable.Select to filter rows by FullName
+                DataRow[] filteredRows = itemTable.Select(string.Format("FullName LIKE '%{0}%'", searchText));
 
-                // Convert DataView back to DataTable
-                filteredTable = dv.ToTable();
+                // Create a new DataTable from the filtered rows
+                filteredTable = itemTable.Clone(); // Clone the structure of itemTable
+                foreach (DataRow row in filteredRows)
+                {
+                    filteredTable.ImportRow(row); // Import each filtered row
+                }
+
                 totalRecords = filteredTable.Rows.Count;
                 totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
 
@@ -342,6 +346,7 @@ namespace Ingredients.FORMS
                 button1.Visible = true;
             }
         }
+
         private void txtqty_KeyPress(object sender, KeyPressEventArgs e)
         {
             // Allow control keys (like backspace)
@@ -385,15 +390,15 @@ namespace Ingredients.FORMS
             if (string.IsNullOrEmpty(qty))
             {
                 MessageBox.Show("Please enter a quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
                 txtqty.Focus();
                 return;
             }
 
-            // Validation 3: Ensure the quantity is a valid integer number
-            if (!int.TryParse(qty, out int parsedQty) || parsedQty < 0)
+            // Validation 3: Ensure the quantity is a valid non-negative decimal number
+
+            if (!decimal.TryParse(qty, out decimal parsedQty) || parsedQty < 0)
             {
-                MessageBox.Show("Please enter a valid non-negative integer for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Please enter a valid non-negative decimal number for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 txtqty.Focus();
                 return;
             }
@@ -411,8 +416,8 @@ namespace Ingredients.FORMS
                 if (ingredientsTableFetcher.CheckIfIngredientExists(ingredientsID, itemInventoryID))
                 {
                     // Retrieve the current quantity and update the total
-                    int currentQty = ingredientsTableFetcher.GetCurrentQuantity(ingredientsID, itemInventoryID);
-                    int newQty = currentQty + parsedQty; // Add the new quantity to the existing one
+                    decimal currentQty = ingredientsTableFetcher.GetCurrentQuantity(ingredientsID, itemInventoryID);
+                    decimal newQty = currentQty + parsedQty; // Add the new quantity to the existing one
 
                     // Update the ingredient with the new total quantity
                     ingredientsTableFetcher.UpdateIngredientsIfExist(newQty.ToString(), ingredientsID, itemInventoryID);
@@ -421,9 +426,6 @@ namespace Ingredients.FORMS
                 {
                     // Insert the new ingredient if it does not exist
                     ingredientsTableFetcher.InsertIngredients(ingredientsID, qty, itemInventoryID);
-
-
-                   
                 }
 
                 // Refresh the ingredients data in the DataGridView after operation
@@ -437,6 +439,7 @@ namespace Ingredients.FORMS
                 MessageBox.Show($"An error occurred while processing the ingredient: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
 
         // Method to check if an ingredient exists in the database

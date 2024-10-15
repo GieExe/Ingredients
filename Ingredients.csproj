@@ -149,17 +149,33 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <None Include="Resources\Outfit\Outfit-VariableFont_wght.ttf" />
-    <None Include="Resources\Outfit\static\Outfit-Black.ttf" />
-    <None Include="Resources\Outfit\static\Outfit-Bold.ttf" />
-    <None Include="Resources\Outfit\static\Outfit-ExtraBold.ttf" />
-    <None Include="Resources\Outfit\static\Outfit-ExtraLight.ttf" />
-    <None Include="Resources\Outfit\static\Outfit-Light.ttf" />
-    <None Include="Resources\Outfit\static\Outfit-Medium.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-Black.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Outfit\static\Outfit-Bold.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Outfit\static\Outfit-ExtraBold.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Outfit\static\Outfit-ExtraLight.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Outfit\static\Outfit-Light.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Outfit\static\Outfit-Medium.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Resources\Outfit\static\Outfit-Regular.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Resources\Outfit\static\Outfit-SemiBold.ttf" />
-    <None Include="Resources\Outfit\static\Outfit-Thin.ttf" />
+    <None Include="Resources\Outfit\static\Outfit-SemiBold.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Outfit\static\Outfit-Thin.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
