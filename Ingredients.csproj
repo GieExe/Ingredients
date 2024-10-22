@@ -106,6 +106,7 @@
   <ItemGroup>
     <Compile Include="Class\ConnectionString.cs" />
     <Compile Include="Class\fetchIngredientsTable.cs" />
+    <Compile Include="Class\fetchItemAssembly.cs" />
     <Compile Include="Class\fetchItemInventory.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
@@ -122,6 +123,7 @@
     <Compile Include="Object\ItemInventory.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\ButtonExecute.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>

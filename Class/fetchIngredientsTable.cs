@@ -18,20 +18,21 @@ namespace Ingredients.Class
 
             // Modified query to join iteminventory and ingredients_table, and select Name
             string query = @"
-        SELECT 
-            i.ID, 
-            i.ingredient_id, 
-            i.qty, 
-            i.iteminventory_id,
-            inv.Name 
-        FROM 
-            ingredients_table i
-        INNER JOIN 
-            iteminventory inv
-        ON 
-            i.ingredient_id = inv.ListID
-        WHERE 
-            i.iteminventory_id = @iteminventory_id;";
+      SELECT 
+    i.ID, 
+    i.ingredient_id, 
+    i.qty, 
+    i.iteminventory_id,
+    i.type,
+    COALESCE(inv.Name, assm.Name) AS CombinedName  -- Combined name from both tables
+FROM 
+    ingredients_table i
+LEFT JOIN 
+    iteminventory inv ON i.ingredient_id = inv.ListID
+LEFT JOIN 
+    iteminventoryassembly assm ON i.ingredient_id = assm.ListID
+WHERE 
+    i.iteminventory_id = @iteminventory_id;";
 
             // Assuming the connection string is stored in a method or class property
             string connectionString = ConnectionString.GetConnectionString();
@@ -61,10 +62,10 @@ namespace Ingredients.Class
             return itemTable;  // Return the filled DataTable
         }
 
-        public void InsertIngredients(string ingredientsID, string qty, string itemInventoryID)
+        public void InsertIngredients(string ingredientsID, string qty, string itemInventoryID, string type)
         {
             // SQL query to insert a new ingredient into the ingredients_table
-            string query = "INSERT INTO ingredients_table (ingredient_id, qty, iteminventory_id) VALUES (@ingredients_id, @qty, @iteminventory_id);";
+            string query = "INSERT INTO ingredients_table (ingredient_id, qty, iteminventory_id, type) VALUES (@ingredients_id, @qty, @iteminventory_id, @type);";
 
             string connectionString = ConnectionString.GetConnectionString();
             using (MySqlConnection connection = new MySqlConnection(connectionString))
@@ -75,6 +76,7 @@ namespace Ingredients.Class
                     command.Parameters.AddWithValue("@ingredients_id", ingredientsID);
                     command.Parameters.AddWithValue("@qty", qty);
                     command.Parameters.AddWithValue("@iteminventory_id", itemInventoryID);
+                    command.Parameters.AddWithValue("@type", type);
 
                     try
                     {

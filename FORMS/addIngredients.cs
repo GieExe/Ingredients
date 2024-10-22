@@ -9,6 +9,8 @@ using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Drawing;
+using Ingredients.Utilities;
+using System.Drawing.Printing;
 
 namespace Ingredients.FORMS
 {
@@ -16,99 +18,68 @@ namespace Ingredients.FORMS
     {
         private fetchIngredientsTable ingredientsTableFetcher = new fetchIngredientsTable();
         private fetchItemInventory itemInventoryGETSET = new fetchItemInventory();
-        private DataTable itemTable;
+        private fetchItemAssembly itemAssembly = new fetchItemAssembly();
+        private DataTable itemInventoryTable;
+        private DataTable filteredInventoryTable;
+
+        private DataTable itemAssemblyTable;
+        private DataTable filteredAssemblyTable;
+
         private string originalValue = "";
 
         private PrivateFontCollection _pfc = new PrivateFontCollection();
-        private DataTable filteredTable; // Holds the filtered data after search
-                                         // Pagination variables
-        private int currentPage = 1;
-        private int pageSize = 30; // Number of records per page
-        private int totalRecords;
-        private int totalPages;
+
+        private int currentPageInventory = 1;
+        private int totalRecordsInventory;
+        private int totalPagesInventory;
+        private int totalPageSizeInventory = 30;
+
+        // Variables for Assembly Table
+        private int currentPageAssembly = 1;
+        private int totalRecordsAssembly;
+        private int totalPagesAssembly;
+        private int totalPageSizeAssembly = 30;
 
         public addIngredients()
         {
             InitializeComponent();
             LoadItemData();
+            LoadAssemblyData();
             txtIngredients.TextChanged += txtIngredients_TextChanged;
+            txtAssemblySearch.TextChanged += txtAssemblySearch_TextChanged;
             txtHiddenID.Visible = false;
             txtID.Visible = false;
             textBox1.Visible = false;
-            btnUpdate.Visible = false;
-            btnRetrieve.Visible = false;
             txtqty.KeyPress += new KeyPressEventHandler(txtqty_KeyPress);
             dataGridView1.CellBeginEdit += new DataGridViewCellCancelEventHandler(dataGridView1_CellBeginEdit);
 
-           
+           txtAssemblySearch.Visible = false;
+            this.Load += new EventHandler(addIngredients_Load);
+            //btnRefresh_Click(this, EventArgs.Empty);
+            //tabControl1.SelectedTab = tabPage1;
+
+            this.KeyPreview = true;
+            this.KeyDown += new KeyEventHandler(addIngredients_KeyDown);
+
+            tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
+            tabControl1.DrawItem += new DrawItemEventHandler(tabControl1_DrawItem);
 
         }
-        //private void LoadCustomFont()
-        //{
-
-        //    // Load "Outfit-Regular.ttf" from resources
-        //    string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
-
-
-        //    if (File.Exists(fontPath))
-        //        {
-        //            var fontBytes = File.ReadAllBytes(fontPath);
-        //            IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
-        //            Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
-        //            _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
-        //            Marshal.FreeCoTaskMem(fontPtr);
-        //        }
-        //        else
-        //        {
-        //            MessageBox.Show("Font file not found: " + fontPath);
-        //        }
-
-        //        if (_pfc.Families.Length == 0)
-        //        {
-        //            MessageBox.Show("Font loading failed.");
-        //        }
-            
-        //}
+      
         private void addIngredients_Load(object sender, EventArgs e)
         {
-            //LoadCustomFont();
+            tabControl1.SelectedTab = tabPage1;
+            LoadAssemblyData();
 
-            //// Apply custom font to all controls
-            //// Check if the font family is available before applying it
-            //if (_pfc.Families.Length > 0)
-            //{
-            //    foreach (Control control in this.Controls)
-            //    {
-            //        control.Font = new Font(_pfc.Families[0], control.Font.Size, control.Font.Style);
-            //    }
-            //}
-            //else
-            //{
-            //    MessageBox.Show("Custom font could not be applied.");
-            //}
-            //SetDataGridViewHeaderFont(dataGridView2);
-            //SetDataGridViewHeaderFont(dataGridView1);
-            //SetButtonFont(button1, btnUpdate, btnRetrieve, button2);
+            btnRefresh_Click(this, EventArgs.Empty);
+
         }
-        //private void SetDataGridViewHeaderFont(DataGridView dgv)
-        //{
-        //    // Set the header font using the custom font
-        //    dgv.ColumnHeadersDefaultCellStyle.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
-        //    dgv.DefaultCellStyle.Font = new Font(_pfc.Families[0], 10);
-
-        //} 
-        //private void SetButtonFont(params Button[] buttons)
-        //{
-        //    foreach (Button btn in buttons)
-        //    {
-        //        // Set the font for each button
-        //        btn.Font = new Font(_pfc.Families[0], 12, FontStyle.Bold); // Set the desired size and style
-        //    }
-        //}
+      
 
         private void addIngredients_Activated(object sender, EventArgs e)
         {
             txtIngredients.Focus();
+            tabControl1.SelectedTab = tabPage1;
         }
         public void SetFullName(string fullName, string itemInventoryID)
         {
@@ -116,36 +87,69 @@ namespace Ingredients.FORMS
             txtFullName.Text = fullName;
             txtID.Text = itemInventoryID;
         }
+
         private void LoadItemData()
         {
-            itemTable = itemInventoryGETSET.GetFullName(); // Retrieve data
+            itemInventoryTable = itemInventoryGETSET.GetFullName(); // Retrieve inventory data
 
-            // Check if itemTable contains rows
-            if (itemTable != null && itemTable.Rows.Count > 0)
+            if (itemInventoryTable != null && itemInventoryTable.Rows.Count > 0)
             {
-                filteredTable = itemTable.Copy(); // Initially, filteredTable is a copy of itemTable
-                totalRecords = filteredTable.Rows.Count;
-                totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
-                lblTotalPage.Text = totalPages.ToString(); // Display total number of pages
-                LoadPage(); // Load the first page
+                filteredInventoryTable = itemInventoryTable.Copy(); // Initially, filteredInventoryTable is a copy of itemInventoryTable
+                totalRecordsInventory = filteredInventoryTable.Rows.Count;
+                totalPagesInventory = (int)Math.Ceiling((double)totalRecordsInventory / totalPageSizeInventory);
+                lblTotalPage.Text = totalPagesInventory.ToString(); // Display total number of pages
 
-                // Configure DataGridView columns
-                dataGridView2.Columns["ListID"].HeaderText = "List ID";
-                dataGridView2.Columns["FullName"].HeaderText = "Ingredients List";
+                LoadPage(); // Load the page for inventory
 
-                foreach (DataGridViewColumn column in dataGridView2.Columns)
+                // Configure DataGridView columns for inventory
+                dataGridItemInventory.Columns["ListID"].HeaderText = "List ID";
+                dataGridItemInventory.Columns["FullName"].HeaderText = "Ingredients List";
+
+                foreach (DataGridViewColumn column in dataGridItemInventory.Columns)
                 {
-                    column.ReadOnly = true; // Set all columns as read-only
+                    column.ReadOnly = true;
                 }
             }
             else
             {
                 MessageBox.Show("No items found in the inventory.");
-                dataGridView2.DataSource = null; // Clear the DataGridView if no data
+                dataGridItemInventory.DataSource = null;
             }
 
-            dataGridView2.Columns["ListID"].Visible = false;
+            dataGridItemInventory.Columns["ListID"].Visible = false;
         }
+
+        private void LoadAssemblyData()
+        {
+            itemAssemblyTable = itemAssembly.GetAllItem(); // Retrieve assembly data
+
+            if (itemAssemblyTable != null && itemAssemblyTable.Rows.Count > 0)
+            {
+                filteredAssemblyTable = itemAssemblyTable.Copy(); // Initially, filteredAssemblyTable is a copy of itemAssemblyTable
+                totalRecordsAssembly = filteredAssemblyTable.Rows.Count;
+                totalPagesAssembly = (int)Math.Ceiling((double)totalRecordsAssembly / totalPageSizeAssembly);
+                lblTotalAssembly.Text = totalPagesAssembly.ToString(); // Display total number of pages
+
+                LoadAssemblyPage(); // Load the page for assembly
+
+                // Configure DataGridView columns for assembly
+                dataGridAssembly.Columns["ListID"].HeaderText = "List ID";
+                dataGridAssembly.Columns["FullName"].HeaderText = "Ingredients List";
+
+                foreach (DataGridViewColumn column in dataGridAssembly.Columns)
+                {
+                    column.ReadOnly = true;
+                }
+            }
+            else
+            {
+                MessageBox.Show("No items found in the assembly.");
+                dataGridAssembly.DataSource = null;
+            }
+
+            dataGridAssembly.Columns["ListID"].Visible = false;
+        }
+
         public void LoadIngredientData(string itemInventoryID)
         {
             DataTable ingredientTable = ingredientsTableFetcher.GetIngredientItem(itemInventoryID);
@@ -155,7 +159,7 @@ namespace Ingredients.FORMS
             emptyTable.Columns.Add("Item Name");
             emptyTable.Columns.Add("Quantity");
             emptyTable.Columns.Add("Item Inventory ID");
-          
+            emptyTable.Columns.Add("TYPE");
 
             // Check if the retrieved DataTable has rows
             if (ingredientTable != null && ingredientTable.Rows.Count > 0)
@@ -165,16 +169,17 @@ namespace Ingredients.FORMS
                 // Set column headers
                 dataGridView1.Columns["ID"].HeaderText = "ID";
                 dataGridView1.Columns["ingredient_id"].HeaderText = "Ingredient ID";
-                dataGridView1.Columns["Name"].HeaderText = "Item Name";
+                dataGridView1.Columns["CombinedName"].HeaderText = "Item Name"; // Update to match the combined name
                 dataGridView1.Columns["qty"].HeaderText = "Quantity";
                 dataGridView1.Columns["iteminventory_id"].HeaderText = "Item Inventory ID";
+                dataGridView1.Columns["type"].HeaderText = "TYPE";
 
                 // Hide the ID and Ingredient ID columns
                 dataGridView1.Columns["ID"].Visible = false;
                 dataGridView1.Columns["ingredient_id"].Visible = false;
 
                 // Set column order (Item Name should come before Quantity)
-                dataGridView1.Columns["Name"].DisplayIndex = 2;  // Set Item Name before Quantity
+                dataGridView1.Columns["CombinedName"].DisplayIndex = 2;  // Set Item Name before Quantity
                 dataGridView1.Columns["qty"].DisplayIndex = 3;
 
                 dataGridView1.ClearSelection();
@@ -202,11 +207,12 @@ namespace Ingredients.FORMS
 
 
 
+
         private void dataGridView2_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0) // Ensure a valid row is clicked
             {
-                DataGridViewRow selectedRow = dataGridView2.Rows[e.RowIndex]; // Access the selected row
+                DataGridViewRow selectedRow = dataGridItemInventory.Rows[e.RowIndex]; // Access the selected row
 
                 // Retrieve the full name and item inventory ID from the selected row
 
@@ -227,7 +233,7 @@ namespace Ingredients.FORMS
         {
             if (e.RowIndex >= 0) // Ensure a valid row is clicked
             {
-                DataGridViewRow selectedRow = dataGridView2.Rows[e.RowIndex]; // Access the selected row
+                DataGridViewRow selectedRow = dataGridItemInventory.Rows[e.RowIndex]; // Access the selected row
 
                 // Retrieve the full name and item inventory ID from the selected row
 
@@ -255,15 +261,24 @@ namespace Ingredients.FORMS
                 // Retrieve the FullName based on the ingredientsID
                 // Retrieve the FullName based on the ingredientsID
                 string fullName = itemInventoryGETSET.GetFullNameUsingListID(ingredientsID);
+                string fullNameAssembly = itemAssembly.GetFullNameUsingListID(ingredientsID);
 
                 if (!string.IsNullOrEmpty(fullName)) // If FullName is found
                 {
                     txtIngredients.Text = fullName;
+                    txtAssemblySearch.Text = "No FullName found";
+
+                }
+                else if(!string.IsNullOrEmpty(fullNameAssembly))
+                {
+                    txtAssemblySearch.Text = fullNameAssembly;
+                    txtIngredients.Text = "No FullName found";
                 }
                 else
                 {
                     // Handle the case where no FullName is found
                     txtIngredients.Text = "No FullName found";
+                    txtAssemblySearch.Text = "No FullName found";
                 }
 
             
@@ -286,19 +301,31 @@ namespace Ingredients.FORMS
                 string ingredientsID = dataGridViewRow.Cells["ingredient_id"].Value.ToString();
                 string qty = dataGridViewRow.Cells["qty"].Value.ToString();
 
+
                 // Retrieve the FullName based on the ingredientsID
                 // Retrieve the FullName based on the ingredientsID
                 string fullName = itemInventoryGETSET.GetFullNameUsingListID(ingredientsID);
+                string fullNameAssembly = itemAssembly.GetFullNameUsingListID(ingredientsID);
 
                 if (!string.IsNullOrEmpty(fullName)) // If FullName is found
                 {
                     txtIngredients.Text = fullName;
+                    txtAssemblySearch.Text = "No FullName found";
+
+                }
+                else if (!string.IsNullOrEmpty(fullNameAssembly))
+                {
+                    txtAssemblySearch.Text = fullNameAssembly;
+                    txtIngredients.Text = "No FullName found";
                 }
                 else
                 {
                     // Handle the case where no FullName is found
                     txtIngredients.Text = "No FullName found";
+                    txtAssemblySearch.Text = "No FullName found";
                 }
+
+            
 
                 txtHiddenID.Text = hiddenID;
                 txtqty.Text = qty;
@@ -312,40 +339,42 @@ namespace Ingredients.FORMS
 
         private void txtIngredients_TextChanged(object sender, EventArgs e)
         {
-            if (itemTable != null && itemTable.Rows.Count > 0)
+            if (itemInventoryTable != null && itemInventoryTable.Rows.Count > 0)
             {
                 // Escape apostrophes in the search text
                 string searchText = txtIngredients.Text.Replace("'", "''");
 
                 // Use DataTable.Select to filter rows by FullName
-                DataRow[] filteredRows = itemTable.Select(string.Format("FullName LIKE '%{0}%'", searchText));
+                DataRow[] filteredRows = itemInventoryTable.Select(string.Format("FullName LIKE '%{0}%'", searchText));
 
                 // Create a new DataTable from the filtered rows
-                filteredTable = itemTable.Clone(); // Clone the structure of itemTable
+                filteredInventoryTable = itemInventoryTable.Clone(); // Clone the structure of itemInventoryTable
                 foreach (DataRow row in filteredRows)
                 {
-                    filteredTable.ImportRow(row); // Import each filtered row
+                    filteredInventoryTable.ImportRow(row); // Import each filtered row
                 }
 
-                totalRecords = filteredTable.Rows.Count;
-                totalPages = (int)Math.Ceiling((double)totalRecords / pageSize);
+                totalRecordsInventory = filteredInventoryTable.Rows.Count;
+                totalPagesInventory = (int)Math.Ceiling((double)totalRecordsInventory / totalPageSizeInventory);
 
                 // Reset pagination to the first page after search
-                currentPage = 1;
-                lblTotalPage.Text = totalPages.ToString(); // Update total pages label
-                LoadPage(); // Load the filtered data with pagination
+                currentPageInventory = 1;
+                lblTotalPage.Text = totalPagesInventory.ToString(); // Update total pages label
+                LoadPage(); // Reload page with filtered data
+              
             }
             else
             {
-                dataGridView2.DataSource = null; // If there are no items, clear the DataGridView
+                dataGridItemInventory.DataSource = null; // Clear DataGridView if no data
             }
 
-            if (txtIngredients.Text == null)
+            if (string.IsNullOrEmpty(txtIngredients.Text))
             {
                 btnUpdate.Visible = false;
                 button1.Visible = true;
             }
         }
+
 
         private void txtqty_KeyPress(object sender, KeyPressEventArgs e)
         {
@@ -375,70 +404,32 @@ namespace Ingredients.FORMS
         private void button1_Click(object sender, EventArgs e)
         {
             string ingredientsID = textBox1.Text;  // Get the ingredient ID from the hidden textbox
-            string qty = txtqty.Text;               // Get the quantity from txtqty
-            string itemInventoryID = txtID.Text;    // Get the item inventory ID from the hidden textbox
+            string qty = txtqty.Text;              // Get the quantity from txtqty
+            string itemInventoryID = txtID.Text;   // Get the item inventory ID from the hidden textbox
 
-            // Validation 1: Ensure an ingredient is selected
-            if (string.IsNullOrEmpty(ingredientsID))
-            {
-                MessageBox.Show("Please select an ingredient from the list.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                txtIngredients.Focus();
-                return;
-            }
+            // Create an instance of ButtonExecute and pass your fetcher
+            ButtonExecute buttonExecute = new ButtonExecute(ingredientsTableFetcher);
 
-            // Validation 2: Ensure the quantity field is not empty
-            if (string.IsNullOrEmpty(qty))
-            {
-                MessageBox.Show("Please enter a quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                txtqty.Focus();
-                return;
-            }
+            // Call the DetermineItemType method to find out if the ingredient is from iteminventory or itemassembly
+            string type = buttonExecute.DetermineItemType(ingredientsID);  // Call DetermineItemType and get the type (ITEM INVENTORY or ITEM ASSEMBLY)
 
-            // Validation 3: Ensure the quantity is a valid non-negative decimal number
+        
+            // Call the refactored method and pass necessary values
+            buttonExecute.HandleButtonClick(
+                ingredientsID,
+                qty,
+                itemInventoryID,
+                type,               // Pass the determined type
+                txtIngredients,
+                txtqty,
+                LoadIngredientData,
+                ClearFields
+            );
 
-            if (!decimal.TryParse(qty, out decimal parsedQty) || parsedQty < 0)
-            {
-                MessageBox.Show("Please enter a valid non-negative decimal number for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                txtqty.Focus();
-                return;
-            }
-
-            // Validation 4: Ensure that the item inventory ID is valid
-            if (string.IsNullOrEmpty(itemInventoryID))
-            {
-                MessageBox.Show("No valid item is selected for inventory.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            // If all validations pass, proceed to check for existing ingredient
-            try
-            {
-                if (ingredientsTableFetcher.CheckIfIngredientExists(ingredientsID, itemInventoryID))
-                {
-                    // Retrieve the current quantity and update the total
-                    decimal currentQty = ingredientsTableFetcher.GetCurrentQuantity(ingredientsID, itemInventoryID);
-                    decimal newQty = currentQty + parsedQty; // Add the new quantity to the existing one
-
-                    // Update the ingredient with the new total quantity
-                    ingredientsTableFetcher.UpdateIngredientsIfExist(newQty.ToString(), ingredientsID, itemInventoryID);
-                }
-                else
-                {
-                    // Insert the new ingredient if it does not exist
-                    ingredientsTableFetcher.InsertIngredients(ingredientsID, qty, itemInventoryID);
-                }
-
-                // Refresh the ingredients data in the DataGridView after operation
-                LoadIngredientData(itemInventoryID);
-
-                // Optionally, clear the fields after successful insertion or update
-                ClearFields();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"An error occurred while processing the ingredient: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            ClearFields();
         }
+
+
 
 
 
@@ -455,12 +446,14 @@ namespace Ingredients.FORMS
             textBox1.Clear(); // Clear the hidden ingredient ID textbox
             txtqty.Clear();
             txtHiddenID.Clear();
+            txtAssemblySearch.Clear();
         }
 
         private void btnRefresh_Click(object sender, EventArgs e)
         {
             string itemInventoryID = txtID.Text;
             LoadItemData();
+            LoadAssemblyData();
             LoadIngredientData(itemInventoryID);
             txtIngredients.Clear();
             button1.Visible = true;
@@ -471,6 +464,12 @@ namespace Ingredients.FORMS
             txtqty.Clear();
             txtHiddenID.Clear();
             txtIngredients.Focus();
+            txtIngredients.Visible = true;
+            txtAssemblySearch.Visible = false;
+            txtAssemblySearch.Clear();
+            tabControl1.SelectedIndex = 0;
+
+
         }
 
         private void btnUpdate_Click(object sender, EventArgs e)
@@ -642,56 +641,224 @@ namespace Ingredients.FORMS
 
         private void btnLast_Click(object sender, EventArgs e)
         {
-            if (currentPage != totalPages)
+            if (currentPageInventory != totalPagesInventory)
             {
-                currentPage = totalPages; // Go to the last page
+                currentPageInventory = totalPagesInventory; // Go to the last page
                 LoadPage();
             }
         }
 
         private void btnNext_Click(object sender, EventArgs e)
         {
-
-            if (currentPage < totalPages)
+            if (currentPageInventory < totalPagesInventory)
             {
-                currentPage++;
+                currentPageInventory++;
                 LoadPage(); // Load the next page
             }
         }
 
         private void btnPrev_Click(object sender, EventArgs e)
         {
-
-            if (currentPage > 1)
+            if (currentPageInventory > 1)
             {
-                currentPage--;
+                currentPageInventory--;
                 LoadPage(); // Load the previous page
             }
         }
 
         private void btnFirst_Click(object sender, EventArgs e)
         {
-            if (currentPage != 1)
+            if (currentPageInventory != 1)
             {
-                currentPage = 1; // Go to the first page
+                currentPageInventory = 1; // Go to the first page
                 LoadPage();
             }
         }
+
         private void LoadPage()
         {
-            // Get a subset of the rows for the current page
-            DataTable pagedTable = filteredTable.Clone(); // Create an empty table with the same structure
-            int startIndex = (currentPage - 1) * pageSize;
+            DataTable pagedTable = filteredInventoryTable.Clone(); // Create an empty table with the same structure
+            int startIndex = (currentPageInventory - 1) * totalPageSizeInventory;
 
             // Copy the rows from the filtered table to the paged table
-            for (int i = startIndex; i < startIndex + pageSize && i < totalRecords; i++)
+            for (int i = startIndex; i < startIndex + totalPageSizeInventory && i < totalRecordsInventory; i++)
             {
-                pagedTable.ImportRow(filteredTable.Rows[i]);
+                pagedTable.ImportRow(filteredInventoryTable.Rows[i]);
             }
 
-            dataGridView2.DataSource = pagedTable; // Bind the paged data to the DataGridView
-            lblCurrent.Text = currentPage.ToString(); // Update the current page label
+            dataGridItemInventory.DataSource = pagedTable; // Bind the paged data to the DataGridView
+            lblCurrent.Text = currentPageInventory.ToString(); // Update the current page label
         }
 
+
+        private void txtAssemblySearch_TextChanged(object sender, EventArgs e)
+        {
+            if (itemAssemblyTable != null && itemAssemblyTable.Rows.Count > 0)
+            {
+                // Escape apostrophes in the search text
+                string searchText = txtAssemblySearch.Text.Replace("'", "''");
+
+                // Use DataTable.Select to filter rows by FullName
+                DataRow[] filteredRows = itemAssemblyTable.Select(string.Format("FullName LIKE '%{0}%'", searchText));
+
+                // Create a new DataTable from the filtered rows
+                filteredAssemblyTable = itemAssemblyTable.Clone(); // Clone the structure of itemAssemblyTable
+                foreach (DataRow row in filteredRows)
+                {
+                    filteredAssemblyTable.ImportRow(row); // Import each filtered row
+                }
+
+                totalRecordsAssembly = filteredAssemblyTable.Rows.Count;
+                totalPagesAssembly = (int)Math.Ceiling((double)totalRecordsAssembly / totalPageSizeAssembly);
+
+                // Reset pagination to the first page after search
+                currentPageAssembly = 1;
+                lblTotalAssembly.Text = totalPagesAssembly.ToString(); // Update total pages label
+                LoadAssemblyPage(); // Reload page with filtered data
+            }
+            else
+            {
+                dataGridAssembly.DataSource = null; // Clear DataGridView if no data
+            }
+
+            if (string.IsNullOrEmpty(txtAssemblySearch.Text))
+            {
+                btnUpdate.Visible = false;
+                button1.Visible = true;
+            }
+        }
+
+        private void btnFirstAssembly_Click(object sender, EventArgs e)
+        {
+            if (currentPageAssembly != 1)
+            {
+                currentPageAssembly = 1; // Go to the first page
+                LoadAssemblyPage();
+            }
+        }
+
+        private void btnPrevAssembly_Click(object sender, EventArgs e)
+        {
+            if (currentPageAssembly > 1)
+            {
+                currentPageAssembly--;
+                LoadAssemblyPage();
+            }
+        }
+
+        private void btnNextAssembly_Click(object sender, EventArgs e)
+        {
+            if (currentPageAssembly < totalPagesAssembly)
+            {
+                currentPageAssembly++;
+                LoadAssemblyPage(); // Load the next page
+            }
+        }
+
+        private void btnLastAssembly_Click(object sender, EventArgs e)
+        {
+            if (currentPageAssembly != totalPagesAssembly)
+            {
+                currentPageAssembly = totalPagesAssembly; // Go to the last page
+                LoadAssemblyPage();
+            }
+        }
+
+        private void LoadAssemblyPage()
+        {
+            DataTable pagedTable = filteredAssemblyTable.Clone(); // Create an empty table with the same structure
+            int startIndex = (currentPageAssembly - 1) * totalPageSizeAssembly;
+
+            // Copy the rows from the filtered table to the paged table
+            for (int i = startIndex; i < startIndex + totalPageSizeAssembly && i < totalRecordsAssembly; i++)
+            {
+                pagedTable.ImportRow(filteredAssemblyTable.Rows[i]);
+            }
+
+            dataGridAssembly.DataSource = pagedTable; // Bind the paged data to the DataGridView
+            lblCurrentAssembly.Text = currentPageAssembly.ToString(); // Update the current page label
+        }
+
+
+        private void dataGridAssembly_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+            if (e.RowIndex >= 0) // Ensure a valid row is clicked
+            {
+                DataGridViewRow selectedRow = dataGridAssembly.Rows[e.RowIndex]; // Access the selected row
+
+                // Retrieve the full name and item inventory ID from the selected row
+
+                string ingredientsID = selectedRow.Cells["ListID"].Value.ToString();
+                string fullName = selectedRow.Cells["FullName"].Value.ToString();
+                // Ensure this matches your DataTable column name
+
+                // Set the full name to the txtIngredients TextBox
+                txtAssemblySearch.Text = fullName;
+                textBox1.Text = ingredientsID;
+                txtqty.Focus();
+
+            }
+        }
+
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (tabControl1.SelectedTab == tabPage1) // Assuming tabPage1 is itemInventory
+            {
+                LoadItemData();
+                txtIngredients.Visible = true;
+                txtAssemblySearch.Visible = false;
+
+                txtIngredients.Focus();
+            }
+            else if (tabControl1.SelectedTab == tabPage2) // Assuming tabPage2 is itemAssembly
+            {
+                LoadAssemblyData();
+                txtIngredients.Visible = false;
+                txtAssemblySearch.Visible = true;
+
+                txtAssemblySearch.Focus();
+            }
+        }
+
+        private void tabControl1_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            TabPage tabPage = tabControl1.TabPages[e.Index];
+            Rectangle tabRect = tabControl1.GetTabRect(e.Index);
+
+            // Set the background color for the selected tab
+            Color backColor = (e.Index == tabControl1.SelectedIndex) ? Color.LightSkyBlue : Color.Gainsboro;
+
+            // Fill the background color of the tab header
+            using (SolidBrush brush = new SolidBrush(backColor))
+            {
+                e.Graphics.FillRectangle(brush, tabRect);
+            }
+
+            // Draw the tab text (optional, you can leave this out if you just want the color)
+            TextRenderer.DrawText(e.Graphics, tabPage.Text, tabPage.Font, tabRect, Color.Black, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+
+        private void addIngredients_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Check for the F1 and F2 key presses
+            if (e.KeyCode == Keys.F1) // F1 key for Tab 1
+            {
+                if (tabControl1.TabCount > 0) // Ensure there are tabs
+                {
+                    tabControl1.SelectedIndex = 0; // Switch to Tab 1
+                }
+                e.Handled = true; // Mark the event as handled
+            }
+            else if (e.KeyCode == Keys.F2) // F2 key for Tab 2
+            {
+                if (tabControl1.TabCount > 1) // Ensure there is a second tab
+                {
+                    tabControl1.SelectedIndex = 1; // Switch to Tab 2
+                }
+                e.Handled = true; // Mark the event as handled
+            }
+          
+        }
     }
 }
