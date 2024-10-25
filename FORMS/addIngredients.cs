@@ -47,9 +47,9 @@ namespace Ingredients.FORMS
             LoadAssemblyData();
             txtIngredients.TextChanged += txtIngredients_TextChanged;
             txtAssemblySearch.TextChanged += txtAssemblySearch_TextChanged;
-            txtHiddenID.Visible = false;
-            txtID.Visible = false;
-            textBox1.Visible = false;
+            //txtHiddenID.Visible = false;
+            //txtID.Visible = false;
+            //textBox1.Visible = false;
             txtqty.KeyPress += new KeyPressEventHandler(txtqty_KeyPress);
             dataGridView1.CellBeginEdit += new DataGridViewCellCancelEventHandler(dataGridView1_CellBeginEdit);
 
@@ -373,6 +373,7 @@ namespace Ingredients.FORMS
             {
                 btnUpdate.Visible = false;
                 button1.Visible = true;
+                ClearFields();
             }
         }
 
@@ -486,21 +487,61 @@ namespace Ingredients.FORMS
                 MessageBox.Show("Please ensure all fields are filled.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+            // Validation 3: Ensure the quantity is a valid non-negative decimal number
+            if (!decimal.TryParse(qty, out decimal parsedQty) || parsedQty < 0)
+            {
+                MessageBox.Show("Please enter a valid non-negative decimal number for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtqty.Focus();
+                return;
+            }
+
 
             ButtonExecute buttonExecute = new ButtonExecute(ingredientsTableFetcher);
 
             string type = buttonExecute.DetermineItemType(ingredientsID);
-            // Update the ingredient data
-            ingredientsTableFetcher.UpdateIngredients(ingredientsID, qty, hiddenID,type);
 
-            // Optionally reload data after updating
-            LoadIngredientData(itemInventoryID);
-            button1.Visible = true;
-            btnUpdate.Visible = false;
-            // Clear fields after updating
-            btnRetrieve.Visible=false;
-            button2.Visible = true;
-            ClearFields();
+            try
+            {
+                if (ingredientsTableFetcher.CheckIfIngredientExists(ingredientsID, itemInventoryID))
+                {
+                    
+                   
+                  
+                    ingredientsTableFetcher.UpdateIngredientsIfExist(qty, ingredientsID, itemInventoryID);
+
+                    // Optionally reload data after updating
+                    LoadIngredientData(itemInventoryID);
+                    button1.Visible = true;
+                    btnUpdate.Visible = false;
+                    // Clear fields after updating
+                    btnRetrieve.Visible = false;
+                    button2.Visible = true;
+                    ClearFields();
+                }
+                else
+                {
+                    // Insert the new ingredient if it does not exist
+                    ingredientsTableFetcher.UpdateIngredients(ingredientsID, qty, hiddenID, type);
+
+                    // Optionally reload data after updating
+                    LoadIngredientData(itemInventoryID);
+                    button1.Visible = true;
+                    btnUpdate.Visible = false;
+                    // Clear fields after updating
+                    btnRetrieve.Visible = false;
+                    button2.Visible = true;
+                    ClearFields();
+                }
+
+             
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred while processing the ingredient: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+           
+           
+
         }
 
         private void btnRetrieve_Click(object sender, EventArgs e)
@@ -729,7 +770,9 @@ namespace Ingredients.FORMS
             {
                 btnUpdate.Visible = false;
                 button1.Visible = true;
+                ClearFields();
             }
+
         }
 
         private void btnFirstAssembly_Click(object sender, EventArgs e)
