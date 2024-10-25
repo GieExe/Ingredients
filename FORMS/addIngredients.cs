@@ -258,8 +258,8 @@ namespace Ingredients.FORMS
                 string hiddenID = dataGridViewRow.Cells["ID"].Value.ToString();
                 string ingredientsID = dataGridViewRow.Cells["ingredient_id"].Value.ToString();
                 string qty = dataGridViewRow.Cells["qty"].Value.ToString();
+                string itemType = dataGridViewRow.Cells["type"].Value.ToString(); // Get the type column value
 
-                // Retrieve the FullName based on the ingredientsID
                 // Retrieve the FullName based on the ingredientsID
                 string fullName = itemInventoryGETSET.GetFullNameUsingListID(ingredientsID);
                 string fullNameAssembly = itemAssembly.GetFullNameUsingListID(ingredientsID);
@@ -268,51 +268,6 @@ namespace Ingredients.FORMS
                 {
                     txtIngredients.Text = fullName;
                     txtAssemblySearch.Text = "No FullName found";
-
-                }
-                else if(!string.IsNullOrEmpty(fullNameAssembly))
-                {
-                    txtAssemblySearch.Text = fullNameAssembly;
-                    txtIngredients.Text = "No FullName found";
-                }
-                else
-                {
-                    // Handle the case where no FullName is found
-                    txtIngredients.Text = "No FullName found";
-                    txtAssemblySearch.Text = "No FullName found";
-                }
-
-            
-                txtHiddenID.Text = hiddenID;
-                txtqty.Text = qty;
-                textBox1.Text = ingredientsID;
-                button1.Visible = false;
-                btnUpdate.Visible = true;
-                btnRetrieve.Visible = true;
-            }
-        }
-
-        private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex >= 0)
-            {
-                DataGridViewRow dataGridViewRow = dataGridView1.Rows[e.RowIndex];
-
-                string hiddenID = dataGridViewRow.Cells["ID"].Value.ToString();
-                string ingredientsID = dataGridViewRow.Cells["ingredient_id"].Value.ToString();
-                string qty = dataGridViewRow.Cells["qty"].Value.ToString();
-
-
-                // Retrieve the FullName based on the ingredientsID
-                // Retrieve the FullName based on the ingredientsID
-                string fullName = itemInventoryGETSET.GetFullNameUsingListID(ingredientsID);
-                string fullNameAssembly = itemAssembly.GetFullNameUsingListID(ingredientsID);
-
-                if (!string.IsNullOrEmpty(fullName)) // If FullName is found
-                {
-                    txtIngredients.Text = fullName;
-                    txtAssemblySearch.Text = "No FullName found";
-
                 }
                 else if (!string.IsNullOrEmpty(fullNameAssembly))
                 {
@@ -326,7 +281,57 @@ namespace Ingredients.FORMS
                     txtAssemblySearch.Text = "No FullName found";
                 }
 
-            
+                txtHiddenID.Text = hiddenID;
+                txtqty.Text = qty;
+                textBox1.Text = ingredientsID;
+                button1.Visible = false;
+                btnUpdate.Visible = true;
+                btnRetrieve.Visible = true;
+
+                // Check item type and switch to the appropriate tab
+                if (itemType == "ITEM INVENTORY")
+                {
+                    tabControl1.SelectedTab = tabPage1; // Switch to TabPage1
+                }
+                else if (itemType == "ITEM ASSEMBLY")
+                {
+                    tabControl1.SelectedTab = tabPage2; // Switch to TabPage2
+                }
+            }
+        }
+
+
+        private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                DataGridViewRow dataGridViewRow = dataGridView1.Rows[e.RowIndex];
+
+                string hiddenID = dataGridViewRow.Cells["ID"].Value.ToString();
+                string ingredientsID = dataGridViewRow.Cells["ingredient_id"].Value.ToString();
+                string qty = dataGridViewRow.Cells["qty"].Value.ToString();
+                string itemType = dataGridViewRow.Cells["type"].Value.ToString(); // Get the type column value
+
+                // Retrieve the FullName based on the ingredientsID
+                string fullName = itemInventoryGETSET.GetFullNameUsingListID(ingredientsID);
+                string fullNameAssembly = itemAssembly.GetFullNameUsingListID(ingredientsID);
+
+                if (!string.IsNullOrEmpty(fullName)) // If FullName is found
+                {
+                    txtIngredients.Text = fullName;
+                    txtAssemblySearch.Text = "No FullName found";
+                }
+                else if (!string.IsNullOrEmpty(fullNameAssembly))
+                {
+                    txtAssemblySearch.Text = fullNameAssembly;
+                    txtIngredients.Text = "No FullName found";
+                }
+                else
+                {
+                    // Handle the case where no FullName is found
+                    txtIngredients.Text = "No FullName found";
+                    txtAssemblySearch.Text = "No FullName found";
+                }
 
                 txtHiddenID.Text = hiddenID;
                 txtqty.Text = qty;
@@ -334,6 +339,16 @@ namespace Ingredients.FORMS
                 button1.Visible = false;
                 btnUpdate.Visible = true;
                 btnRetrieve.Visible = true;
+
+                // Check item type and switch to the appropriate tab
+                if (itemType == "ITEM INVENTORY")
+                {
+                    tabControl1.SelectedTab = tabPage1; // Switch to TabPage1
+                }
+                else if (itemType == "ITEM ASSEMBLY")
+                {
+                    tabControl1.SelectedTab = tabPage2; // Switch to TabPage2
+                }
             }
 
         }
