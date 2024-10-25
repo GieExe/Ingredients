@@ -115,6 +115,7 @@ WHERE
                         command.Parameters.AddWithValue("@ingredients_id", ingredientsID);
                         command.Parameters.AddWithValue("@item_inventory_id", itemInventoryID);
 
+
                         // Execute the update command
                         int rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected > 0)
@@ -185,9 +186,9 @@ WHERE
                 }
             }
         }
-        public void UpdateIngredients(string ingredientsID, string qty, string ID)
+        public void UpdateIngredients(string ingredientsID, string qty, string ID, string type)
         {
-            string query = "UPDATE ingredients_table SET ingredient_id = @ingredients_id, qty = @qty WHERE ID = @ID;";
+            string query = "UPDATE ingredients_table SET ingredient_id = @ingredients_id, qty = @qty, type = @type WHERE ID = @ID;";
 
             string connectionString = ConnectionString.GetConnectionString();
 
@@ -202,6 +203,7 @@ WHERE
                         command.Parameters.AddWithValue("@ingredients_id", ingredientsID);
                         command.Parameters.AddWithValue("@qty", qty);
                         command.Parameters.AddWithValue("@ID", ID);
+                        command.Parameters.AddWithValue("@type", type);
 
                         // Execute the update command
                         int rowsAffected = command.ExecuteNonQuery();

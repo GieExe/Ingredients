@@ -197,6 +197,7 @@ namespace Ingredients.FORMS
                         column.ReadOnly = true;  // Set all other columns as read-only
                     }
                 }
+                dataGridView1.CellFormatting += dataGridView1_CellFormatting;
             }
             else
             {
@@ -486,8 +487,11 @@ namespace Ingredients.FORMS
                 return;
             }
 
+            ButtonExecute buttonExecute = new ButtonExecute(ingredientsTableFetcher);
+
+            string type = buttonExecute.DetermineItemType(ingredientsID);
             // Update the ingredient data
-            ingredientsTableFetcher.UpdateIngredients(ingredientsID, qty, hiddenID);
+            ingredientsTableFetcher.UpdateIngredients(ingredientsID, qty, hiddenID,type);
 
             // Optionally reload data after updating
             LoadIngredientData(itemInventoryID);
@@ -860,5 +864,43 @@ namespace Ingredients.FORMS
             }
           
         }
+
+        private void dataGridView1_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (dataGridView1.Columns[e.ColumnIndex].Name == "type")
+            {
+                string itemType = e.Value?.ToString();
+
+                if (itemType == "ITEM INVENTORY")
+                {
+                    e.CellStyle.ForeColor = Color.Green; // Set text color to green for ITEM INVENTORY
+                    e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold); // Set font to bold
+                }
+                else if (itemType == "ITEM ASSEMBLY")
+                {
+                    e.CellStyle.ForeColor = Color.Orange; // Set text color to orange for ITEM ASSEMBLY
+                    e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold); // Set font to bold
+                }
+            }
+
+            // Formatting for the "CombinedName" or "Item Name" column based on the type
+            if (dataGridView1.Columns[e.ColumnIndex].Name == "CombinedName")
+            {
+                // Retrieve the value from the "type" column to determine formatting
+                string itemType = dataGridView1.Rows[e.RowIndex].Cells["type"].Value?.ToString();
+
+                if (itemType == "ITEM INVENTORY")
+                {
+                    e.CellStyle.ForeColor = Color.Green; // Set text color to green for ITEM INVENTORY
+                    e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold); // Set font to bold
+                }
+                else if (itemType == "ITEM ASSEMBLY")
+                {
+                    e.CellStyle.ForeColor = Color.Orange; // Set text color to orange for ITEM ASSEMBLY
+                    e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold); // Set font to bold
+                }
+            }
+        }
+
     }
 }
