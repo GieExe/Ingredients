@@ -47,9 +47,9 @@ namespace Ingredients.FORMS
             LoadAssemblyData();
             txtIngredients.TextChanged += txtIngredients_TextChanged;
             txtAssemblySearch.TextChanged += txtAssemblySearch_TextChanged;
-            //txtHiddenID.Visible = false;
-            //txtID.Visible = false;
-            //textBox1.Visible = false;
+            txtHiddenID.Visible = false;
+            txtID.Visible = false;
+            textBox1.Visible = false;
             txtqty.KeyPress += new KeyPressEventHandler(txtqty_KeyPress);
             dataGridView1.CellBeginEdit += new DataGridViewCellCancelEventHandler(dataGridView1_CellBeginEdit);
 
