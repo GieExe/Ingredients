@@ -230,11 +230,14 @@ WHERE
             string query = "DELETE FROM ingredients_table WHERE ID = @ID";
             string connectionString = ConnectionString.GetConnectionString();
 
-            using(MySqlConnection connection = new MySqlConnection( connectionString))
+            using (MySqlConnection connection = new MySqlConnection(connectionString))
             {
                 try
                 {
                     connection.Open();
+
+                  
+
                     using (MySqlCommand command = new MySqlCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("@ID", ID);
@@ -254,7 +257,50 @@ WHERE
                     MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
 
+
+
+        public void UpdateType(string type, string ingredientsID, string itemInventoryID)
+        {
+            string query = "UPDATE ingredients_table SET type = @type WHERE ingredient_id = @ingredients_id AND iteminventory_id = @item_inventory_id;";
+
+
+
+            string connectionString = ConnectionString.GetConnectionString();
+
+            using (MySqlConnection connection = new MySqlConnection(connectionString))
+            {
+                try
+                {
+                    connection.Open();
+                    using (MySqlCommand command = new MySqlCommand(query, connection))
+                    {
+                        // Add the parameters with their respective values
+
+                        command.Parameters.AddWithValue("@type", type);
+                        command.Parameters.AddWithValue("@ingredients_id", ingredientsID);
+                        command.Parameters.AddWithValue("@item_inventory_id", itemInventoryID);
+
+
+                        // Execute the update command
+                        int rowsAffected = command.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                        {
+                            MessageBox.Show("Successful updating Type.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("No rows were updated. Please check the item inventory ID.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                }
+
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"An error occurred while updating the ingredient: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
     }

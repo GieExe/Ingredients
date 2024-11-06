@@ -11,6 +11,7 @@ using System.IO;
 using System.Drawing;
 using Ingredients.Utilities;
 using System.Drawing.Printing;
+using System.Collections.Generic;
 
 namespace Ingredients.FORMS
 {
@@ -26,6 +27,7 @@ namespace Ingredients.FORMS
         private DataTable filteredAssemblyTable;
 
         private string originalValue = "";
+        private string originalType = "";
 
         private PrivateFontCollection _pfc = new PrivateFontCollection();
 
@@ -40,6 +42,7 @@ namespace Ingredients.FORMS
         private int totalPagesAssembly;
         private int totalPageSizeAssembly = 30;
 
+        private string selectedIngredientID;
         public addIngredients()
         {
             InitializeComponent();
@@ -149,7 +152,6 @@ namespace Ingredients.FORMS
 
             dataGridAssembly.Columns["ListID"].Visible = false;
         }
-
         public void LoadIngredientData(string itemInventoryID)
         {
             DataTable ingredientTable = ingredientsTableFetcher.GetIngredientItem(itemInventoryID);
@@ -169,7 +171,7 @@ namespace Ingredients.FORMS
                 // Set column headers
                 dataGridView1.Columns["ID"].HeaderText = "ID";
                 dataGridView1.Columns["ingredient_id"].HeaderText = "Ingredient ID";
-                dataGridView1.Columns["CombinedName"].HeaderText = "Item Name"; // Update to match the combined name
+                dataGridView1.Columns["CombinedName"].HeaderText = "Item Name";
                 dataGridView1.Columns["qty"].HeaderText = "Quantity";
                 dataGridView1.Columns["iteminventory_id"].HeaderText = "Item Inventory ID";
                 dataGridView1.Columns["type"].HeaderText = "TYPE";
@@ -178,9 +180,11 @@ namespace Ingredients.FORMS
                 dataGridView1.Columns["ID"].Visible = false;
                 dataGridView1.Columns["ingredient_id"].Visible = false;
 
-                // Set column order (Item Name should come before Quantity)
-                dataGridView1.Columns["CombinedName"].DisplayIndex = 2;  // Set Item Name before Quantity
-                dataGridView1.Columns["qty"].DisplayIndex = 3;
+                // Set column order explicitly
+                dataGridView1.Columns["CombinedName"].DisplayIndex = 0;  // Item Name
+                dataGridView1.Columns["qty"].DisplayIndex = 1;           // Quantity
+                dataGridView1.Columns["iteminventory_id"].DisplayIndex = 2; // Item Inventory ID
+                dataGridView1.Columns["type"].DisplayIndex = 3;          // TYPE
 
                 dataGridView1.ClearSelection();
 
@@ -188,7 +192,7 @@ namespace Ingredients.FORMS
                 foreach (DataGridViewColumn column in dataGridView1.Columns)
                 {
                     column.SortMode = DataGridViewColumnSortMode.NotSortable;
-                    if (column.Name == "qty")
+                    if (column.Name == "qty" || column.Name == "type")
                     {
                         column.ReadOnly = false; // Allow editing for "Quantity" column
                     }
@@ -197,7 +201,11 @@ namespace Ingredients.FORMS
                         column.ReadOnly = true;  // Set all other columns as read-only
                     }
                 }
-                dataGridView1.CellFormatting += dataGridView1_CellFormatting;
+
+                //// Apply cell formatting and force the grid to refresh
+                //dataGridView1.CellFormatting += dataGridView1_CellFormatting;
+                //dataGridView1.Refresh(); // Force the DataGridView to refresh, ensuring the formatting takes effect
+
             }
             else
             {
@@ -205,6 +213,7 @@ namespace Ingredients.FORMS
                 dataGridView1.DataSource = emptyTable;
             }
         }
+
 
 
 
@@ -224,7 +233,6 @@ namespace Ingredients.FORMS
                 // Set the full name to the txtIngredients TextBox
                 txtIngredients.Text = fullName;
                 textBox1.Text = ingredientsID;
-
                 txtqty.Focus();
 
             }
@@ -254,51 +262,46 @@ namespace Ingredients.FORMS
             if (e.RowIndex >= 0)
             {
                 DataGridViewRow dataGridViewRow = dataGridView1.Rows[e.RowIndex];
+                selectedIngredientID = dataGridViewRow.Cells["ID"].Value.ToString();
 
-                string hiddenID = dataGridViewRow.Cells["ID"].Value.ToString();
+              
                 string ingredientsID = dataGridViewRow.Cells["ingredient_id"].Value.ToString();
                 string qty = dataGridViewRow.Cells["qty"].Value.ToString();
-                string itemType = dataGridViewRow.Cells["type"].Value.ToString(); // Get the type column value
+                string itemType = dataGridViewRow.Cells["type"].Value.ToString();
 
-                // Retrieve the FullName based on the ingredientsID
                 string fullName = itemInventoryGETSET.GetFullNameUsingListID(ingredientsID);
                 string fullNameAssembly = itemAssembly.GetFullNameUsingListID(ingredientsID);
 
-                if (!string.IsNullOrEmpty(fullName)) // If FullName is found
+                if (!string.IsNullOrEmpty(fullName))
                 {
+                    tabControl1.SelectedTab = tabPage1;
                     txtIngredients.Text = fullName;
                     txtAssemblySearch.Text = "No FullName found";
+                    txtqty.Focus();
                 }
                 else if (!string.IsNullOrEmpty(fullNameAssembly))
                 {
+                    tabControl1.SelectedTab = tabPage2;
                     txtAssemblySearch.Text = fullNameAssembly;
                     txtIngredients.Text = "No FullName found";
+                    txtqty.Focus();
                 }
                 else
                 {
-                    // Handle the case where no FullName is found
                     txtIngredients.Text = "No FullName found";
                     txtAssemblySearch.Text = "No FullName found";
                 }
 
-                txtHiddenID.Text = hiddenID;
+                txtHiddenID.Text = selectedIngredientID; // Optional if you still want to display it
                 txtqty.Text = qty;
                 textBox1.Text = ingredientsID;
                 button1.Visible = false;
                 btnUpdate.Visible = true;
                 btnRetrieve.Visible = true;
-
-                // Check item type and switch to the appropriate tab
-                if (itemType == "ITEM INVENTORY")
-                {
-                    tabControl1.SelectedTab = tabPage1; // Switch to TabPage1
-                }
-                else if (itemType == "ITEM ASSEMBLY")
-                {
-                    tabControl1.SelectedTab = tabPage2; // Switch to TabPage2
-                }
             }
         }
+
+
 
 
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
@@ -318,13 +321,19 @@ namespace Ingredients.FORMS
 
                 if (!string.IsNullOrEmpty(fullName)) // If FullName is found
                 {
+                    tabControl1.SelectedTab = tabPage1;
                     txtIngredients.Text = fullName;
                     txtAssemblySearch.Text = "No FullName found";
+                    txtqty.Focus();
+
                 }
                 else if (!string.IsNullOrEmpty(fullNameAssembly))
                 {
+                    tabControl1.SelectedTab = tabPage2;
                     txtAssemblySearch.Text = fullNameAssembly;
                     txtIngredients.Text = "No FullName found";
+                    txtqty.Focus();
+
                 }
                 else
                 {
@@ -333,6 +342,7 @@ namespace Ingredients.FORMS
                     txtAssemblySearch.Text = "No FullName found";
                 }
 
+
                 txtHiddenID.Text = hiddenID;
                 txtqty.Text = qty;
                 textBox1.Text = ingredientsID;
@@ -340,15 +350,16 @@ namespace Ingredients.FORMS
                 btnUpdate.Visible = true;
                 btnRetrieve.Visible = true;
 
-                // Check item type and switch to the appropriate tab
-                if (itemType == "ITEM INVENTORY")
-                {
-                    tabControl1.SelectedTab = tabPage1; // Switch to TabPage1
-                }
-                else if (itemType == "ITEM ASSEMBLY")
-                {
-                    tabControl1.SelectedTab = tabPage2; // Switch to TabPage2
-                }
+                //// Check item type and switch to the appropriate tab
+                //if (itemType == "ITEM INVENTORY")
+                //{
+                //    tabControl1.SelectedTab = tabPage1; // Switch to TabPage1
+
+                //}
+                //else if (itemType == "ITEM ASSEMBLY")
+                //{
+                //    tabControl1.SelectedTab = tabPage2; // Switch to TabPage2
+                //}
             }
 
         }
@@ -388,6 +399,8 @@ namespace Ingredients.FORMS
             {
                 btnUpdate.Visible = false;
                 button1.Visible = true;
+                btnRetrieve.Visible = false;
+                button2.Visible = true;
                 ClearFields();
             }
         }
@@ -430,7 +443,55 @@ namespace Ingredients.FORMS
             // Call the DetermineItemType method to find out if the ingredient is from iteminventory or itemassembly
             string type = buttonExecute.DetermineItemType(ingredientsID);  // Call DetermineItemType and get the type (ITEM INVENTORY or ITEM ASSEMBLY)
 
-        
+
+            // Validation 1: Ensure an ingredient is selected
+            if (string.IsNullOrEmpty(ingredientsID))
+            {
+                MessageBox.Show("Please select an ingredient from the list.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtIngredients.Focus();
+
+                return;
+            }
+
+            // Validation 2: Ensure the quantity field is not empty
+            if (string.IsNullOrEmpty(qty))
+            {
+               
+                if (txtIngredients.Text == "")
+                {
+                    MessageBox.Show("Please enter a quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                   
+                    tabControl1.SelectedTab = tabPage2;
+                    txtAssemblySearch.Focus();
+
+                }
+                else if(txtAssemblySearch.Text == "")
+                {
+                    MessageBox.Show("Please enter a quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                   
+                    tabControl1.SelectedTab = tabPage1;
+                    txtqty.Focus();
+                }
+                return;
+              
+            }
+
+            // Validation 3: Ensure the quantity is a valid non-negative decimal number
+            if (!decimal.TryParse(qty, out decimal parsedQty) || parsedQty < 0)
+            {
+                MessageBox.Show("Please enter a valid non-negative decimal number for quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                txtqty.Focus();
+                return;
+            }
+
+            // Validation 4: Ensure that the item inventory ID is valid
+            if (string.IsNullOrEmpty(itemInventoryID))
+            {
+                MessageBox.Show("No valid item is selected for inventory.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+
             // Call the refactored method and pass necessary values
             buttonExecute.HandleButtonClick(
                 ingredientsID,
@@ -561,28 +622,42 @@ namespace Ingredients.FORMS
 
         private void btnRetrieve_Click(object sender, EventArgs e)
         {
-
             var result = MessageBox.Show("Are you sure you want to delete this ingredient?", "Confirm Delete",
-                                 MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                                         MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
 
             if (result == DialogResult.Yes)
             {
-                // Assuming you have a way to get the ID of the ingredient to delete
-                string ingredientId = txtHiddenID.Text; // Replace with actual ID retrieval logic
-               ingredientsTableFetcher.DeleteIngredients(ingredientId);
-
-                string itemInventoryID = txtID.Text;
-                LoadItemData();
-                LoadIngredientData(itemInventoryID);
-                btnUpdate.Visible = false;
-                btnRetrieve.Visible = false;
-                button1.Visible=true;
-                button2.Visible = true;
-                ClearFields();
                 
+                if (!string.IsNullOrEmpty(selectedIngredientID))
+                {
+                    ingredientsTableFetcher.DeleteIngredients(selectedIngredientID);
+
+                    string itemInventoryID = txtID.Text;
+                    LoadItemData();
+                    LoadIngredientData(itemInventoryID);
+                    btnUpdate.Visible = false;
+                    btnRetrieve.Visible = false;
+                    button1.Visible = true;
+                    button2.Visible = true;
+                    ClearFields();
+                }
+               
             }
         }
-      
+
+
+        private bool ContainsNumbersOrDecimals(string input)
+        {
+            foreach (char c in input)
+            {
+                if (char.IsDigit(c) || c == '.')
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
 
         private void dataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
         {
@@ -592,12 +667,73 @@ namespace Ingredients.FORMS
                 originalValue = dataGridView1.Rows[e.RowIndex].Cells["qty"].Value.ToString();
             }
 
+            if (e.ColumnIndex == dataGridView1.Columns["type"].Index)
+            {
+                originalType = dataGridView1.Rows[e.RowIndex].Cells["type"].Value.ToString();
+            }
+
 
 
         }
         private void dataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
-     
+
+            if (e.ColumnIndex == dataGridView1.Columns["type"].Index)
+            {
+                int rowIndex = e.RowIndex;
+                string ingredientID = dataGridView1.Rows[rowIndex].Cells["ingredient_id"].Value.ToString();
+                string itemInventoryID = dataGridView1.Rows[rowIndex].Cells["iteminventory_id"].Value.ToString();
+
+                // Automatically capitalize the new type
+                string newType = dataGridView1.Rows[rowIndex].Cells["type"].Value.ToString().Trim().ToUpper(); // Trim whitespace and capitalize
+
+                // Allowed types
+                var allowedTypes = new List<string> { "ITEM INVENTORY", "ITEM ASSEMBLY" };
+
+                // Check if the entered type is valid and does not contain any numbers or decimals
+                if (allowedTypes.Contains(newType) && !ContainsNumbersOrDecimals(newType))
+                {
+                    if (newType != originalType)
+                    {
+                        var result = MessageBox.Show("Are you sure you want to update this Type?", "Confirm Update",
+                                                      MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                        if (result == DialogResult.Yes)
+                        {
+                            try
+                            {
+                                ingredientsTableFetcher.UpdateType(newType, ingredientID, itemInventoryID);
+                                LoadIngredientData(itemInventoryID);
+
+                                // Clear and reset UI controls as needed
+                                button1.Visible = true;
+                                btnUpdate.Visible = false;
+                                btnRetrieve.Visible = false;
+                                button2.Visible = true;
+                                ClearFields();
+                                txtIngredients.Focus();
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Error updating Type: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        }
+                        else
+                        {
+                            // Reset the value back to originalValue if user clicks "No"
+                            dataGridView1.Rows[rowIndex].Cells["type"].Value = originalType;
+                        }
+                    }
+                }
+                else
+                {
+                    // Show validation error and reset the value
+                    MessageBox.Show("Invalid format. Allowed values are 'ITEM INVENTORY' or 'ITEM ASSEMBLY', and no numbers or decimals are allowed.", "Invalid Type", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    dataGridView1.Rows[rowIndex].Cells["type"].Value = originalType;
+                }
+            }
+
+
             if (e.ColumnIndex == dataGridView1.Columns["qty"].Index)
             {
                 int rowIndex = e.RowIndex;
@@ -652,6 +788,9 @@ namespace Ingredients.FORMS
                 }
 
             }
+
+           
+
 
         }
 
@@ -783,8 +922,11 @@ namespace Ingredients.FORMS
 
             if (string.IsNullOrEmpty(txtAssemblySearch.Text))
             {
+
                 btnUpdate.Visible = false;
                 button1.Visible = true;
+                btnRetrieve.Visible = false;
+                button2.Visible = true;
                 ClearFields();
             }
 
@@ -871,6 +1013,7 @@ namespace Ingredients.FORMS
                 txtIngredients.Visible = true;
                 txtAssemblySearch.Visible = false;
 
+                txtAssemblySearch.Clear();
                 txtIngredients.Focus();
             }
             else if (tabControl1.SelectedTab == tabPage2) // Assuming tabPage2 is itemAssembly
@@ -879,6 +1022,7 @@ namespace Ingredients.FORMS
                 txtIngredients.Visible = false;
                 txtAssemblySearch.Visible = true;
 
+                txtIngredients.Clear();
                 txtAssemblySearch.Focus();
             }
         }
@@ -901,6 +1045,7 @@ namespace Ingredients.FORMS
             TextRenderer.DrawText(e.Graphics, tabPage.Text, tabPage.Font, tabRect, Color.Black, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
+       
         private void addIngredients_KeyDown(object sender, KeyEventArgs e)
         {
             // Check for the F1 and F2 key presses

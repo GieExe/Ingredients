@@ -18,20 +18,7 @@ namespace Ingredients.Utilities
         public void HandleButtonClick(string ingredientsID, string qty, string itemInventoryID, string type, TextBox txtIngredients, TextBox txtqty, Action<string> loadIngredientData, Action clearFields)
         {
             // Validation 1: Ensure an ingredient is selected
-            if (string.IsNullOrEmpty(ingredientsID))
-            {
-                MessageBox.Show("Please select an ingredient from the list.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                txtIngredients.Focus();
-                return;
-            }
-
-            // Validation 2: Ensure the quantity field is not empty
-            if (string.IsNullOrEmpty(qty))
-            {
-                MessageBox.Show("Please enter a quantity.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                txtqty.Focus();
-                return;
-            }
+        
 
             // Validation 3: Ensure the quantity is a valid non-negative decimal number
             if (!decimal.TryParse(qty, out decimal parsedQty) || parsedQty < 0)
@@ -41,13 +28,7 @@ namespace Ingredients.Utilities
                 return;
             }
 
-            // Validation 4: Ensure that the item inventory ID is valid
-            if (string.IsNullOrEmpty(itemInventoryID))
-            {
-                MessageBox.Show("No valid item is selected for inventory.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
+    
             // If all validations pass, proceed to check for existing ingredient
             try
             {
