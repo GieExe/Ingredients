@@ -67,8 +67,14 @@ namespace Ingredients.FORMS
             tabControl1.DrawMode = TabDrawMode.OwnerDrawFixed;
             tabControl1.DrawItem += new DrawItemEventHandler(tabControl1_DrawItem);
 
+
+
         }
-      
+        private void addIngredients_Shown(object sender, EventArgs e)
+        {
+          
+
+        }
         private void addIngredients_Load(object sender, EventArgs e)
         {
             tabControl1.SelectedTab = tabPage1;
@@ -115,8 +121,8 @@ namespace Ingredients.FORMS
             }
             else
             {
-                MessageBox.Show("No items found in the inventory.");
-                dataGridItemInventory.DataSource = null;
+                dataGridAssembly.DataSource = null;
+                lblTotalAssembly.Text = "0";
             }
 
             dataGridItemInventory.Columns["ListID"].Visible = false;
@@ -124,11 +130,14 @@ namespace Ingredients.FORMS
 
         private void LoadAssemblyData()
         {
+            // Ensure that itemAssemblyTable is initialized even if the query returns no rows
             itemAssemblyTable = itemAssembly.GetAllItem(); // Retrieve assembly data
 
+            // Check if the table is null or empty
             if (itemAssemblyTable != null && itemAssemblyTable.Rows.Count > 0)
             {
-                filteredAssemblyTable = itemAssemblyTable.Copy(); // Initially, filteredAssemblyTable is a copy of itemAssemblyTable
+                // If the table has rows, copy it to filteredAssemblyTable
+                filteredAssemblyTable = itemAssemblyTable.Copy();
                 totalRecordsAssembly = filteredAssemblyTable.Rows.Count;
                 totalPagesAssembly = (int)Math.Ceiling((double)totalRecordsAssembly / totalPageSizeAssembly);
                 lblTotalAssembly.Text = totalPagesAssembly.ToString(); // Display total number of pages
@@ -146,12 +155,18 @@ namespace Ingredients.FORMS
             }
             else
             {
-                MessageBox.Show("No items found in the assembly.");
+                // If no data is found, set the DataGridView to show an empty state
                 dataGridAssembly.DataSource = null;
+                lblTotalAssembly.Text = "0"; // Indicate 0 pages or records
             }
 
-            dataGridAssembly.Columns["ListID"].Visible = false;
+            // Ensure that "ListID" column is hidden even if the table is empty
+            if (dataGridAssembly.Columns.Contains("ListID"))
+            {
+                dataGridAssembly.Columns["ListID"].Visible = false;
+            }
         }
+
         public void LoadIngredientData(string itemInventoryID)
         {
             DataTable ingredientTable = ingredientsTableFetcher.GetIngredientItem(itemInventoryID);
@@ -1105,5 +1120,6 @@ namespace Ingredients.FORMS
             }
         }
 
+       
     }
 }

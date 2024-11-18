@@ -29,13 +29,10 @@ namespace Ingredients.Class
                     {
                         MySqlDataAdapter adapter = new MySqlDataAdapter(query, connection);
                         adapter.Fill(itemTable);
-
-
                     }
                 }
                 catch (Exception ex)
                 {
-
                     MessageBox.Show(ex.Message);
                 }
             }

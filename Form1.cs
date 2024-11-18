@@ -30,31 +30,10 @@ namespace Ingredients
             InitializeComponent();
             LoadItemData(); // Load the data into the DataGridView when the form loads
             txtSearch.TextChanged += txtSearch_TextChanged; // Subscribe to the TextChanged event
+
+        
         }
-        //private void LoadCustomFont()
-        //{
-        //    // Load "Outfit-Regular.ttf" from resources
-        //    string fontPath = Path.Combine(Application.StartupPath, "Resources", "Outfit", "static", "Outfit-Regular.ttf");
-
-
-        //    if (File.Exists(fontPath))
-        //    {
-        //        var fontBytes = File.ReadAllBytes(fontPath);
-        //        IntPtr fontPtr = Marshal.AllocCoTaskMem(fontBytes.Length);
-        //        Marshal.Copy(fontBytes, 0, fontPtr, fontBytes.Length);
-        //        _pfc.AddMemoryFont(fontPtr, fontBytes.Length);
-        //        Marshal.FreeCoTaskMem(fontPtr);
-        //    }
-        //    else
-        //    {
-        //        MessageBox.Show("Font file not found: " + fontPath);
-        //    }
-
-        //    if (_pfc.Families.Length == 0)
-        //    {
-        //        MessageBox.Show("Font loading failed.");
-        //    }
-        //}
+      
         private void Form1_Load(object sender, EventArgs e)
         {
             dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;  // Optional, resize columns to fit
@@ -253,6 +232,10 @@ namespace Ingredients
                 LoadPage();
             }
         }
-       
+
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+           
+        }
     }
 }
